@@ -1,0 +1,9 @@
+{% if categoria_cor %}
+    <span class="badge {{ css_class }}" style="background-color: {{ categoria_cor }}; color: white;">
+        {{ categoria_nome }}
+    </span>
+{% else %}
+    <span class="badge badge-secondary {{ css_class }}">
+        {{ categoria_nome }}
+    </span>
+{% endif %}

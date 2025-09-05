@@ -1,0 +1,534 @@
+{% extends 'financas/base.html' %}
+{% load static %}
+{% load currency_filters %}
+
+{% block title %}Fechamento Mensal{% endblock %}
+{% block page_title %}Fechamento Mensal{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>Fechamento Mensal</h2>
+        <p class="text-muted">Realize o fechamento mensal das suas contas individualmente.</p>
+        
+        <!-- Navegação Simples entre Meses -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="btn-group" role="group">
+                    <a href="?mes={{ mes_anterior }}&ano={{ ano_anterior }}" class="btn {% if mes_fechamento == mes_anterior %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        Agosto {{ ano_anterior }}
+                    </a>
+                    <a href="?mes={{ mes_atual }}&ano={{ ano_atual }}" class="btn {% if mes_fechamento == mes_atual %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                        Setembro {{ ano_atual }}
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-6 text-end">
+                {% if not pode_fechar_mes %}
+                    <small class="text-warning">{{ motivo_restricao }}</small>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Script para toast de fechamento antecipado -->
+{% if eh_fechamento_antecipado %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const message = `
+            <strong>Fechamento Antecipado</strong><br>
+            Fechamento no dia {{ dia_atual }}/{{ mes_fechamento }}, antes do último dia ({{ ultimo_dia_mes }}).<br>
+            <small>Período: 01/{{ mes_fechamento }}/{{ ano_fechamento }} até {{ dia_atual }}/{{ mes_fechamento }}/{{ ano_fechamento }}</small>
+        `;
+        showToast(message, 'info', 10000);
+    });
+</script>
+{% endif %}
+
+<!-- Mensagens agora são exibidas globalmente no base.html -->
+
+<!-- Lista de Contas para Fechamento -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-calendar-check me-2"></i>Fechamento de {{ nome_mes_fechamento }} {{ ano_fechamento }}
+                    {% if eh_fechamento_mes_anterior %}
+                        <small class="text-muted">(Mês Anterior)</small>
+                    {% else %}
+                        <small class="text-muted">(Mês Atual)</small>
+                    {% endif %}
+                </h6>
+            </div>
+            <div class="card-body">
+                <!-- Botão de Fechamento Automático -->
+                {% if config_fechamento.fechamento_automatico and pode_fechar_mes %}
+                <div class="mb-3">
+                    <button type="button" class="btn btn-success btn-sm" id="btn-fechamento-automatico">
+                        <i class="fas fa-magic me-2"></i>Fechamento Automático
+                    </button>
+                </div>
+                {% endif %}
+                
+
+                
+                {% if contas_dados %}
+                    <!-- Separar contas abertas e fechadas -->
+                    {% with contas_abertas=contas_dados|dictsort:"status" %}
+                        {% regroup contas_abertas by status as contas_por_status %}
+                        
+                        {% for status_group in contas_por_status %}
+                            {% if status_group.grouper == 'Aberto' %}
+                                <!-- Tabela de Contas Abertas -->
+                                <div class="mb-4">
+                                    <h5 class="text-warning mb-3">
+                                        <i class="fas fa-unlock me-2"></i>Contas Abertas - {{ nome_mes_fechamento }} {{ ano_fechamento }}
+                                        {% if eh_fechamento_mes_anterior %}
+                                            <small class="text-muted">(Fechamento do Mês Anterior)</small>
+                                        {% endif %}
+                                    </h5>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" width="100%" cellspacing="0">
+                                            <thead class="table-warning">
+                                                <tr>
+                                                    <th>Conta</th>
+                                                    <th>Tipo</th>
+                                                    <th>Saldo Atual</th>
+                                                    <th>Receitas</th>
+                                                    <th>Despesas</th>
+                                                    <th>Ações</th>
+                                                    <th>Histórico</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in status_group.list %}
+                                                    <tr>
+                                                        <td><strong>{{ item.conta.nome }}</strong></td>
+                                                        <td>{{ item.conta.tipo }}</td>
+                                                        <td class="{% if item.conta.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                            {{ item.conta.saldo|currency_br }}
+                                                        </td>
+                                                        <td class="text-success">
+                                            {% if item.valores_mes_fechamento %}
+                                                {{ item.valores_mes_fechamento.receitas|currency_br }}
+                                            {% else %}
+                                                R$ 0,00
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-danger">
+                                            {% if item.valores_mes_fechamento %}
+                                                {{ item.valores_mes_fechamento.despesas|currency_br }}
+                                            {% else %}
+                                                                R$ 0,00
+                                                            {% endif %}
+                                                            {% if item.periodo_fechamento %}
+                                                                <br><small class="text-muted">
+                                                                    <i class="fas fa-calendar-alt me-1"></i>
+                                                                    {{ item.periodo_fechamento.data_inicio|date:"d/m" }} a {{ item.periodo_fechamento.data_fim|date:"d/m" }}
+                                                                    {% if item.periodo_fechamento.eh_antecipado %}
+                                                                        <span class="badge bg-warning text-dark ms-1">Parcial</span>
+                                                                    {% else %}
+                                                                        <span class="badge bg-success ms-1">Completo</span>
+                                                                    {% endif %}
+                                                                </small>
+                                                            {% endif %}
+                                                        </td>
+                                                        <td>
+                                                            <form method="post" style="display: inline;">
+                                                                {% csrf_token %}
+                                                                <input type="hidden" name="action" value="fechar_conta">
+                                                                <input type="hidden" name="conta_id" value="{{ item.conta.id }}">
+                                                                <input type="hidden" name="mes" value="{{ mes_fechamento }}">
+                                                                <input type="hidden" name="ano" value="{{ ano_fechamento }}">
+                                                                {% if pode_fechar_mes %}
+                                                                    <button type="submit" class="btn btn-primary btn-sm" 
+                                                                            onclick="return confirm('Confirma o fechamento da conta {{ item.conta.nome }} para {{ mes_fechamento }}/{{ ano_fechamento }}?')">
+                                                                        <i class="fas fa-lock"></i> Fechar
+                                                                    </button>
+                                                                {% else %}
+                                                                    <button type="button" class="btn btn-secondary btn-sm" disabled 
+                                                                            title="{{ motivo_restricao }}">
+                                                                        <i class="fas fa-lock"></i> Fechar
+                                                                    </button>
+                                                                {% endif %}
+                                                            </form>
+                                                        </td>
+                                                        <td>
+                                                            <button class="btn btn-outline-info btn-sm" type="button" 
+                                                                    data-bs-toggle="collapse" 
+                                                                    data-bs-target="#historico-aberto-{{ item.conta.id }}" 
+                                                                    aria-expanded="false">
+                                                                <i class="fas fa-history"></i> Ver Histórico
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                    <!-- Linha do Histórico (Colapsável) -->
+                                                    <tr>
+                                                        <td colspan="7" class="p-0">
+                                                            <div class="collapse" id="historico-aberto-{{ item.conta.id }}">
+                                                                <div class="card card-body m-2">
+                                                                    <h6 class="text-primary mb-3">
+                                                                        <i class="fas fa-history me-2"></i>Histórico de Fechamentos - {{ item.conta.nome }}
+                                                                    </h6>
+                                                                    {% if item.historico %}
+                                                                        <div class="table-responsive">
+                                                                            <table class="table table-sm table-striped">
+                                                                                <thead>
+                                                                                    <tr>
+                                                                                        <th>Período</th>
+                                                                                        <th>Tipo</th>
+                                                                                        <th>Saldo Inicial</th>
+                                                                                        <th>Receitas</th>
+                                                                                        <th>Despesas</th>
+                                                                                        <th>Saldo Final</th>
+                                                                                        <th>Data Fechamento</th>
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody>
+                                                                                    {% for fechamento in item.historico %}
+                                                                                        <tr>
+                                                                                            <td><strong>{{ fechamento.mes }}/{{ fechamento.ano }}</strong></td>
+                                                                                            <td>
+                                                                                                {% if fechamento.eh_parcial %}
+                                                                                                    <span class="badge bg-warning text-dark">
+                                                                                                        <i class="fas fa-exclamation-triangle me-1"></i>Parcial
+                                                                                                    </span>
+                                                                                                {% else %}
+                                                                                                    <span class="badge bg-success">
+                                                                                                        <i class="fas fa-check-circle me-1"></i>Completo
+                                                                                                    </span>
+                                                                                                {% endif %}
+                                                                                            </td>
+                                                                                            <td class="text-info">{{ fechamento.saldo_inicial|currency_br }}</td>
+                                                                                            <td class="text-success">{{ fechamento.total_receitas|currency_br }}</td>
+                                                                                            <td class="text-danger">{{ fechamento.total_despesas|currency_br }}</td>
+                                                                                            <td class="{% if fechamento.saldo_final >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                                                                {{ fechamento.saldo_final|currency_br }}
+                                                                                            </td>
+                                                                                            <td>{{ fechamento.data_fechamento|date:"d/m/Y H:i" }}</td>
+                                                                                        </tr>
+                                                                                    {% endfor %}
+                                                                                </tbody>
+                                                                            </table>
+                                                                        </div>
+                                                                    {% else %}
+                                                                        <div class="text-center py-3">
+                                                                            <i class="fas fa-calendar-times fa-2x text-muted mb-2"></i>
+                                                                            <p class="text-muted mb-0">Nenhum fechamento anterior encontrado para esta conta.</p>
+                                                                            <small class="text-muted">O histórico aparecerá após o primeiro fechamento mensal.</small>
+                                                                        </div>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% for status_group in contas_por_status %}
+                            {% if status_group.grouper == 'Fechado' %}
+                                <!-- Tabela de Contas Fechadas -->
+                                <div class="mb-4">
+                                    <h5 class="text-success mb-3">
+                                        <i class="fas fa-lock me-2"></i>Contas Fechadas - {{ mes_atual }}/{{ ano_atual }}
+                                    </h5>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" width="100%" cellspacing="0">
+                                            <thead class="table-success">
+                                                <tr>
+                                                    <th>Conta</th>
+                                                    <th>Tipo</th>
+                                                    <th>Saldo Final</th>
+                                                    <th>Receitas</th>
+                                                    <th>Despesas</th>
+                                                    <th>Data Fechamento</th>
+                                                    <th>Histórico</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for item in status_group.list %}
+                                                    <tr>
+                                                        <td><strong>{{ item.conta.nome }}</strong></td>
+                                                        <td>{{ item.conta.tipo }}</td>
+                                                        <td class="{% if item.fechamento_atual.saldo_final >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                            {{ item.fechamento_atual.saldo_final|currency_br }}
+                                                        </td>
+                                                        <td class="text-success">{{ item.fechamento_atual.total_receitas|currency_br }}</td>
+                                                        <td class="text-danger">{{ item.fechamento_atual.total_despesas|currency_br }}</td>
+                                                        <td>{{ item.fechamento_atual.data_fechamento|date:"d/m/Y H:i" }}</td>
+                                                        <td>
+                                                            <button class="btn btn-outline-info btn-sm" type="button" 
+                                                                    data-bs-toggle="collapse" 
+                                                                    data-bs-target="#historico-fechado-{{ item.conta.id }}" 
+                                                                    aria-expanded="false">
+                                                                <i class="fas fa-history"></i> Ver Histórico
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                    <!-- Linha do Histórico (Colapsável) -->
+                                                    <tr>
+                                                        <td colspan="7" class="p-0">
+                                                            <div class="collapse" id="historico-fechado-{{ item.conta.id }}">
+                                                                <div class="card card-body m-2">
+                                                                    <h6 class="text-primary mb-3">
+                                                                        <i class="fas fa-history me-2"></i>Histórico de Fechamentos - {{ item.conta.nome }}
+                                                                    </h6>
+                                                                    {% if item.historico %}
+                                                                        <div class="table-responsive">
+                                                                            <table class="table table-sm table-striped">
+                                                                                <thead>
+                                                                                    <tr>
+                                                                                        <th>Período</th>
+                                                                                        <th>Saldo Inicial</th>
+                                                                                        <th>Receitas</th>
+                                                                                        <th>Despesas</th>
+                                                                                        <th>Saldo Final</th>
+                                                                                        <th>Data Fechamento</th>
+                                                                                    </tr>
+                                                                                </thead>
+                                                                                <tbody>
+                                                                                    {% for fechamento in item.historico %}
+                                                                                        <tr>
+                                                                                            <td><strong>{{ fechamento.mes }}/{{ fechamento.ano }}</strong></td>
+                                                                                            <td class="text-info">{{ fechamento.saldo_inicial|currency_br }}</td>
+                                                                                            <td class="text-success">{{ fechamento.total_receitas|currency_br }}</td>
+                                                                                            <td class="text-danger">{{ fechamento.total_despesas|currency_br }}</td>
+                                                                                            <td class="{% if fechamento.saldo_final >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                                                                                {{ fechamento.saldo_final|currency_br }}
+                                                                                            </td>
+                                                                                            <td>{{ fechamento.data_fechamento|date:"d/m/Y H:i" }}</td>
+                                                                                        </tr>
+                                                                                    {% endfor %}
+                                                                                </tbody>
+                                                                            </table>
+                                                                        </div>
+                                                                    {% else %}
+                                                                        <div class="text-center py-3">
+                                                                            <i class="fas fa-calendar-times fa-2x text-muted mb-2"></i>
+                                                                            <p class="text-muted mb-0">Nenhum fechamento anterior encontrado para esta conta.</p>
+                                                                            <small class="text-muted">Este é o primeiro fechamento desta conta.</small>
+                                                                        </div>
+                                                                    {% endif %}
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% endwith %}
+                    
+                    <!-- Seção de Transações Pós-Fechamento -->
+                    {% comment %} Verificar se há contas com transações pós-fechamento {% endcomment %}
+                    {% for item in contas_dados %}
+                        {% if item.transacoes_pos_fechamento and forloop.first %}
+                            <div class="mb-4">
+                                <h5 class="text-warning mb-3">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>Movimentações Após Fechamento
+                                </h5>
+                                <script>
+                                     document.addEventListener('DOMContentLoaded', function() {
+                                         showToast('Foram detectadas movimentações após o último fechamento. Considere realizar um novo fechamento.', 'warning', 8000);
+                                     });
+                                 </script>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% for item in contas_dados %}
+                        {% if item.transacoes_pos_fechamento %}
+                            {% if forloop.first %}
+                                <!-- Abrir div apenas no primeiro item -->
+                            {% endif %}
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-credit-card me-2"></i>{{ item.conta.nome }}
+                                        <span class="badge bg-warning text-dark ms-2">{{ item.transacoes_pos_fechamento|length }} transação{{ item.transacoes_pos_fechamento|length|pluralize:"ões" }}</span>
+                                        {% if item.ultimo_fechamento %}
+                                            <small class="text-muted ms-2">
+                                                (Último fechamento: {{ item.ultimo_fechamento.data_fim_periodo|date:"d/m/Y" }})
+                                            </small>
+                                        {% endif %}
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-striped">
+                                            <thead>
+                                                <tr>
+                                                    <th>Data</th>
+                                                    <th>Descrição</th>
+                                                    <th>Categoria</th>
+                                                    <th>Valor</th>
+                                                    <th>Tipo</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {% for transacao in item.transacoes_pos_fechamento %}
+                                                    <tr>
+                                                        <td>{{ transacao.data|date:"d/m/Y" }}</td>
+                                                        <td>{{ transacao.descricao }}</td>
+                                                        <td>
+                                                            <span class="badge bg-secondary">{{ transacao.categoria.nome }}</span>
+                                                        </td>
+                                                        <td class="{% if transacao.tipo == 'receita' %}text-success{% else %}text-danger{% endif %}">
+                                                            {{ transacao.valor|currency_br }}
+                                                        </td>
+                                                        <td>
+                                                            {% if transacao.tipo == 'receita' %}
+                                                                <span class="badge bg-success">Receita</span>
+                                                            {% else %}
+                                                                <span class="badge bg-danger">Despesa</span>
+                                                            {% endif %}
+                                                        </td>
+                                                    </tr>
+                                                {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <div class="text-end mt-2">
+                                        <button class="btn btn-warning btn-sm" onclick="window.location.reload()">
+                                            <i class="fas fa-sync-alt me-1"></i>Fechar Novamente
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% comment %} Fechar div se houver pelo menos uma conta com transações {% endcomment %}
+                    {% for item in contas_dados %}
+                        {% if item.transacoes_pos_fechamento and forloop.last %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-wallet fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">Nenhuma conta cadastrada</h5>
+                        <p class="text-muted">Cadastre uma conta primeiro para realizar fechamentos mensais.</p>
+                        <a href="{% url 'contas' %}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Cadastrar Conta
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Informações sobre Fechamento -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card border-info">
+            <div class="card-header bg-info text-white">
+                <h6 class="m-0 font-weight-bold">
+                    <i class="fas fa-info-circle me-2"></i>Informações sobre o Fechamento Mensal
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="font-weight-bold text-primary">O que acontece no fechamento:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-check text-success me-2"></i>Calcula o saldo inicial do período</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Soma todas as receitas do mês</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Soma todas as despesas do mês</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Calcula o saldo final</li>
+                            <li><i class="fas fa-check text-success me-2"></i>Registra o fechamento no histórico</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="font-weight-bold text-warning">Importante:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-exclamation-triangle text-warning me-2"></i>O fechamento é irreversível</li>
+                            <li><i class="fas fa-exclamation-triangle text-warning me-2"></i>Só pode ser feito uma vez por mês/conta</li>
+                            <li><i class="fas fa-exclamation-triangle text-warning me-2"></i>Recomendado fazer no final do mês</li>
+                            <li><i class="fas fa-exclamation-triangle text-warning me-2"></i>Verifique todas as transações antes</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// JavaScript para fechamento automático
+document.addEventListener('DOMContentLoaded', function() {
+    const btnFechamentoAutomatico = document.getElementById('btn-fechamento-automatico');
+    
+    if (btnFechamentoAutomatico) {
+        btnFechamentoAutomatico.addEventListener('click', function() {
+            if (confirm('Confirma o fechamento automático de todas as contas abertas?')) {
+                // Desabilitar botão e mostrar loading
+                btnFechamentoAutomatico.disabled = true;
+                btnFechamentoAutomatico.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processando...';
+                
+                // Fazer requisição AJAX
+                fetch('{% url "fechamento_automatico" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        let message = `<strong>Fechamento Automático Concluído!</strong><br>`;
+                        message += `Mês: ${data.mes_fechamento}/${data.ano_fechamento}<br>`;
+                        message += `Contas fechadas: ${data.total_fechadas}<br>`;
+                        
+                        if (data.contas_fechadas.length > 0) {
+                            message += `<small>Fechadas: ${data.contas_fechadas.join(', ')}</small><br>`;
+                        }
+                        
+                        if (data.contas_ja_fechadas.length > 0) {
+                            message += `<small>Já fechadas: ${data.contas_ja_fechadas.join(', ')}</small><br>`;
+                        }
+                        
+                        if (data.erros.length > 0) {
+                            message += `<small class="text-danger">Erros: ${data.erros.join(', ')}</small>`;
+                        }
+                        
+                        showToast(message, 'success', 8000);
+                        
+                        // Recarregar página após 2 segundos
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 2000);
+                    } else {
+                        showToast(`<strong>Erro no Fechamento Automático</strong><br>${data.message}`, 'error', 5000);
+                        
+                        // Reabilitar botão
+                        btnFechamentoAutomatico.disabled = false;
+                        btnFechamentoAutomatico.innerHTML = '<i class="fas fa-magic me-2"></i>Executar Fechamento Automático';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    showToast('<strong>Erro de Conexão</strong><br>Não foi possível executar o fechamento automático.', 'error', 5000);
+                    
+                    // Reabilitar botão
+                    btnFechamentoAutomatico.disabled = false;
+                    btnFechamentoAutomatico.innerHTML = '<i class="fas fa-magic me-2"></i>Executar Fechamento Automático';
+                });
+            }
+        });
+    }
+});
+</script>
+
+{% endblock %}

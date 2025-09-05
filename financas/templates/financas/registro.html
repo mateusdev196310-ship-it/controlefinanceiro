@@ -1,0 +1,299 @@
+{% extends 'financas/base.html' %}
+{% load static %}
+
+{% block title %}Cadastro - Sistema Financeiro{% endblock %}
+
+{% block extra_css %}
+<style>
+    .registro-container {
+        max-width: 600px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 1rem;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+    }
+    
+    .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+        padding: 0.75rem 2rem;
+        font-size: 1rem;
+        border-radius: 5px;
+        cursor: pointer;
+        width: 100%;
+    }
+    
+    .btn-primary:hover {
+        background-color: #0056b3;
+        border-color: #0056b3;
+    }
+    
+    .alert {
+        padding: 0.75rem 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+        border-radius: 5px;
+    }
+    
+    .alert-danger {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
+    
+    .alert-success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+    }
+    
+    .pessoa-fields {
+        display: none;
+    }
+    
+    .pessoa-fields.active {
+        display: block;
+    }
+    
+    .text-center {
+        text-align: center;
+    }
+    
+    .mt-3 {
+        margin-top: 1rem;
+    }
+    
+    .loading {
+        display: none;
+        color: #007bff;
+    }
+    
+    /* Corrigir cursor em elementos não editáveis */
+    h2, h3, h4, h5, h6, p, label, .form-label, .text-center, .mb-4, div:not([contenteditable]) {
+        cursor: default !important;
+        user-select: none;
+    }
+    
+    /* Permitir seleção de texto apenas em elementos específicos */
+    input, textarea, select, .form-control {
+        user-select: text;
+    }
+    
+    /* Cursor pointer apenas para elementos clicáveis */
+    button, .btn, a, [role="button"], .clickable {
+        cursor: pointer !important;
+        user-select: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="registro-container">
+    <h2 class="text-center mb-4">Cadastro no Sistema</h2>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <form method="post" id="registroForm">
+        {% csrf_token %}
+        
+        <div class="form-group">
+            <label for="username">Nome de Usuário:</label>
+            <input type="text" class="form-control" id="username" name="username" required autocomplete="off" value="">
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" class="form-control" id="email" name="email" required autocomplete="off" value="">
+        </div>
+        
+        <div class="form-group">
+            <label for="password1">Senha:</label>
+            <input type="password" class="form-control" id="password1" name="password1" required autocomplete="new-password" value="">
+            <small class="text-muted">Mínimo 8 caracteres</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="password2">Confirmar Senha:</label>
+            <input type="password" class="form-control" id="password2" name="password2" required autocomplete="new-password" value="">
+        </div>
+        
+        <div class="form-group">
+            <label for="tipo_pessoa">Tipo de Pessoa:</label>
+            <select class="form-control" id="tipo_pessoa" name="tipo_pessoa" required>
+                <option value="">Selecione...</option>
+                <option value="fisica">Pessoa Física</option>
+                <option value="juridica">Pessoa Jurídica</option>
+            </select>
+        </div>
+        
+        <!-- Campos para Pessoa Física -->
+        <div id="campos-fisica" class="pessoa-fields">
+            <div class="form-group">
+                <label for="cpf">CPF:</label>
+                <input type="text" class="form-control" id="cpf" name="cpf" placeholder="000.000.000-00">
+            </div>
+        </div>
+        
+        <!-- Campos para Pessoa Jurídica -->
+        <div id="campos-juridica" class="pessoa-fields">
+            <div class="form-group">
+                <label for="cnpj">CNPJ:</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" class="form-control" id="cnpj" name="cnpj" placeholder="00.000.000/0000-00">
+                    <button type="button" id="buscar-cnpj" class="btn btn-secondary">Buscar</button>
+                </div>
+                <div class="loading" id="loading-cnpj">Buscando dados...</div>
+            </div>
+            
+            <div class="form-group">
+                <label for="razao_social">Razão Social:</label>
+                <input type="text" class="form-control" id="razao_social" name="razao_social" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label for="nome_fantasia">Nome Fantasia:</label>
+                <input type="text" class="form-control" id="nome_fantasia" name="nome_fantasia" readonly>
+            </div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Cadastrar</button>
+    </form>
+    
+    <div class="text-center mt-3">
+        <p>Já tem uma conta? <a href="{% url 'login' %}">Faça login</a></p>
+    </div>
+</div>
+
+<script>
+// Limpar todos os campos quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('username').value = '';
+    document.getElementById('email').value = '';
+    document.getElementById('password1').value = '';
+    document.getElementById('password2').value = '';
+    document.getElementById('tipo_pessoa').value = '';
+    document.getElementById('cpf').value = '';
+    document.getElementById('cnpj').value = '';
+    document.getElementById('razao_social').value = '';
+    document.getElementById('nome_fantasia').value = '';
+});
+
+// Controlar exibição dos campos baseado no tipo de pessoa
+document.getElementById('tipo_pessoa').addEventListener('change', function() {
+    const tipoPessoa = this.value;
+    const camposFisica = document.getElementById('campos-fisica');
+    const camposJuridica = document.getElementById('campos-juridica');
+    
+    // Esconder todos os campos
+    camposFisica.classList.remove('active');
+    camposJuridica.classList.remove('active');
+    
+    // Mostrar campos relevantes
+    if (tipoPessoa === 'fisica') {
+        camposFisica.classList.add('active');
+        document.getElementById('cpf').required = true;
+        document.getElementById('cnpj').required = false;
+    } else if (tipoPessoa === 'juridica') {
+        camposJuridica.classList.add('active');
+        document.getElementById('cnpj').required = true;
+        document.getElementById('cpf').required = false;
+    }
+});
+
+// Máscara para CPF
+document.getElementById('cpf').addEventListener('input', function() {
+    let value = this.value.replace(/\D/g, '');
+    value = value.replace(/(\d{3})(\d)/, '$1.$2');
+    value = value.replace(/(\d{3})(\d)/, '$1.$2');
+    value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    this.value = value;
+});
+
+// Máscara para CNPJ
+document.getElementById('cnpj').addEventListener('input', function() {
+    let value = this.value.replace(/\D/g, '');
+    value = value.replace(/(\d{2})(\d)/, '$1.$2');
+    value = value.replace(/(\d{3})(\d)/, '$1.$2');
+    value = value.replace(/(\d{3})(\d)/, '$1/$2');
+    value = value.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+    this.value = value;
+});
+
+// Buscar dados do CNPJ
+document.getElementById('buscar-cnpj').addEventListener('click', function() {
+    const cnpj = document.getElementById('cnpj').value;
+    const loading = document.getElementById('loading-cnpj');
+    
+    if (!cnpj) {
+        alert('Digite o CNPJ primeiro');
+        return;
+    }
+    
+    loading.style.display = 'block';
+    this.disabled = true;
+    
+    fetch(`/buscar-cnpj/?cnpj=${encodeURIComponent(cnpj)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const dados = data.dados;
+                document.getElementById('razao_social').value = dados.razao_social || '';
+                document.getElementById('nome_fantasia').value = dados.nome_fantasia || '';
+            } else {
+                alert(data.error || 'Erro ao buscar dados do CNPJ');
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            alert('Erro ao buscar dados do CNPJ');
+        })
+        .finally(() => {
+            loading.style.display = 'none';
+            this.disabled = false;
+        });
+});
+
+// Validação de senhas
+document.getElementById('registroForm').addEventListener('submit', function(e) {
+    const password1 = document.getElementById('password1').value;
+    const password2 = document.getElementById('password2').value;
+    
+    if (password1 !== password2) {
+        e.preventDefault();
+        alert('As senhas não coincidem!');
+        return;
+    }
+    
+    if (password1.length < 8) {
+        e.preventDefault();
+        alert('A senha deve ter pelo menos 8 caracteres!');
+        return;
+    }
+});
+</script>
+{% endblock %}

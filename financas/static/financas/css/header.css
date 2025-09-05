@@ -1,0 +1,172 @@
+/* Header Styles - FinanceiroTech */
+
+.main-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 70px;
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+    color: white;
+    z-index: 1100;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    transition: all 0.3s ease;
+}
+
+.main-header .logo {
+    display: flex;
+    align-items: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: white;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.main-header .logo:hover {
+    color: #3498db;
+    text-decoration: none;
+}
+
+.main-header .logo i {
+    margin-right: 10px;
+    font-size: 2rem;
+    color: #3498db;
+    transition: all 0.3s ease;
+}
+
+.main-header .logo:hover i {
+    transform: scale(1.1);
+}
+
+.main-header .header-center {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.main-header .company-info {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+}
+
+.main-header .header-user-menu {
+    display: flex;
+    align-items: center;
+}
+
+.main-header .header-user-menu .btn {
+    border-color: rgba(255,255,255,0.3);
+    color: white;
+    transition: all 0.3s ease;
+}
+
+.main-header .header-user-menu .btn:hover {
+    background-color: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.5);
+    color: white;
+}
+
+.main-header .company-info span {
+    display: flex;
+    align-items: center;
+    color: rgba(255,255,255,0.9);
+    transition: all 0.3s ease;
+}
+
+.main-header .company-info span:hover {
+    color: #3498db;
+}
+
+.main-header .company-info i {
+    margin-right: 5px;
+    font-size: 0.8rem;
+}
+
+.main-header .company-info .separator {
+    margin: 0 15px;
+    height: 30px;
+    width: 1px;
+    background: rgba(255,255,255,0.3);
+}
+
+.main-header.no-sidebar {
+    background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+}
+
+/* Responsive Design */
+@media (max-width: 992px) {
+    .main-header .header-center {
+        display: none;
+    }
+    
+    .main-header {
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-header {
+        padding: 0 15px;
+    }
+    
+    .main-header .logo {
+        font-size: 1.3rem;
+    }
+    
+    .main-header .logo i {
+        font-size: 1.8rem;
+    }
+    
+    .main-header .header-user-menu .btn span {
+        display: none !important;
+    }
+    
+    .main-header .header-user-menu .btn {
+        padding: 8px 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .main-header .logo span {
+        display: none;
+    }
+    
+    .main-header .logo i {
+        margin-right: 0;
+    }
+}
+
+/* Animation for smooth transitions */
+@keyframes headerSlideDown {
+    from {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.main-header {
+    animation: headerSlideDown 0.5s ease-out;
+}
+
+/* Hover effects for better UX */
+.main-header .company-info span {
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 3px;
+    transition: background-color 0.3s ease;
+}
+
+.main-header .company-info span:hover {
+    background-color: rgba(255,255,255,0.1);
+}

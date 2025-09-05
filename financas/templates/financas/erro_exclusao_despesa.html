@@ -1,0 +1,77 @@
+{% extends 'financas/base.html' %}
+{% load static %}
+
+{% block page_title %}Erro na Exclusão{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Modal de Erro Automático -->
+    <div class="modal fade show" id="modalErroExclusao" tabindex="-1" aria-labelledby="modalErroExclusaoLabel" 
+         style="display: block; background-color: rgba(0,0,0,0.5);" aria-modal="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-danger">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="modalErroExclusaoLabel">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Exclusão Não Permitida
+                    </h5>
+                </div>
+                <div class="modal-body text-center">
+                    <div class="mb-4">
+                        <i class="fas fa-ban fa-4x text-danger mb-3"></i>
+                        <h4 class="text-danger mb-3">Operação Bloqueada!</h4>
+                    </div>
+                    
+                    <div class="alert alert-danger text-start">
+                        <h6><strong>Despesa:</strong> {{ despesa_nome }}</h6>
+                        <hr>
+                        <p class="mb-2">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>Não é possível excluir esta despesa parcelada</strong>
+                        </p>
+                        <p class="mb-2">
+                            <i class="fas fa-check-circle me-2 text-success"></i>
+                            Existem <strong>{{ parcelas_pagas }} parcela(s)</strong> já baixada(s)
+                        </p>
+                        <hr>
+                        <p class="mb-0 text-muted">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            <strong>Solução:</strong> Para excluir esta despesa, primeiro reabra todas as parcelas pagas.
+                        </p>
+                    </div>
+                    
+                    <div class="text-muted">
+                        <small>
+                            <i class="fas fa-shield-alt me-1"></i>
+                            Esta proteção evita inconsistências nos dados financeiros.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <a href="{% url 'detalhes_despesa_parcelada' despesa_id %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Entendi, Voltar aos Detalhes
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-focus no modal quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('modalErroExclusao');
+    if (modal) {
+        modal.focus();
+        
+        // Adicionar listener para ESC key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                window.location.href = "{% url 'detalhes_despesa_parcelada' despesa_id %}";
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

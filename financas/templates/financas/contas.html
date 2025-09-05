@@ -1,0 +1,199 @@
+{% extends 'financas/base.html' %}
+{% load static %}
+{% load currency_filters %}
+
+{% block title %}Contas{% endblock %}
+
+{% block content %}
+<style>
+.card-uniform {
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+}
+.card-uniform .card-header {
+    min-height: 54px;
+    display: flex;
+    align-items: center;
+}
+.card-uniform .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.card-uniform .flex-grow-1 {
+    flex: 1;
+}
+</style>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>Contas</h2>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addContaModal">
+                    <i class="fas fa-plus"></i> Nova Conta
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        {% for conta in contas %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 card-uniform">
+                {% if conta.is_conta_bancaria and conta.banco %}
+                <div class="card-header d-flex align-items-center">
+                    {% if conta.banco.imagem %}
+                    <img src="{% static conta.banco.imagem %}" alt="{{ conta.banco.nome }}" style="height: 30px; margin-right: 10px;">
+                    {% endif %}
+                    <small class="text-muted">{{ conta.banco.codigo }} - {{ conta.banco.nome }}</small>
+                </div>
+                {% else %}
+                <div class="card-header d-flex align-items-center" style="height: 54px;">
+                    <small class="text-muted">Conta Simples</small>
+                </div>
+                {% endif %}
+                <div class="card-body d-flex flex-column">
+                    <div class="flex-grow-1">
+                        <h5 class="card-title">{{ conta.nome }}</h5>
+                        <p class="card-text">
+                            <strong>Saldo:</strong> 
+                            <span class="{% if conta.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ conta.saldo|currency_br }}
+                            </span>
+                        </p>
+                        {% if conta.is_conta_bancaria %}
+                            {% if conta.agencia %}<p class="card-text"><small class="text-muted">Agência: {{ conta.agencia }}</small></p>{% endif %}
+                            {% if conta.numero_conta %}<p class="card-text"><small class="text-muted">Conta: {{ conta.numero_conta }}</small></p>{% endif %}
+                            {% if conta.cnpj %}<p class="card-text"><small class="text-muted">CNPJ: {{ conta.cnpj }}</small></p>{% endif %}
+                        {% endif %}
+                    </div>
+                    <div class="d-flex justify-content-end mt-auto">
+                        <div class="btn-group" role="group">
+                            <a href="{% url 'editar_conta' conta.id %}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'excluir_conta_segura' conta.id %}" class="btn btn-outline-danger btn-sm" title="Excluir conta com segurança">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="fas fa-info-circle"></i>
+                Nenhuma conta cadastrada ainda.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Modal para adicionar conta -->
+<div class="modal fade" id="addContaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nova Conta</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="post">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="nome" class="form-label">Nome da Conta</label>
+                        <input type="text" class="form-control" id="nome" name="nome" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="saldo_inicial" class="form-label">Saldo Inicial</label>
+                        <input type="number" step="0.01" class="form-control" id="saldo_inicial" name="saldo_inicial" value="0">
+                    </div>
+                    
+                    <!-- Radio buttons para tipo de conta -->
+                    <div class="mb-3">
+                        <label class="form-label">Tipo de Conta</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="tipo" id="tipo_simples" value="simples" checked onchange="toggleCamposBancarios()">
+                            <label class="form-check-label" for="tipo_simples">
+                                Conta Simples
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="tipo" id="tipo_bancaria" value="bancaria" onchange="toggleCamposBancarios()">
+                            <label class="form-check-label" for="tipo_bancaria">
+                                Conta Bancária
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Campos específicos para conta bancária -->
+                    <div id="campos_bancarios" style="display: none;">
+                        <div class="mb-3">
+                            <label for="banco" class="form-label">Banco</label>
+                            <select class="form-select" id="banco" name="banco">
+                                <option value="">Selecione um banco</option>
+                                {% for banco in bancos %}
+                                <option value="{{ banco.id }}" data-imagem="{{ banco.imagem }}">{{ banco.codigo }} - {{ banco.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="cnpj" class="form-label">CNPJ</label>
+                            <input type="text" class="form-control" id="cnpj" name="cnpj" placeholder="00.000.000/0000-00">
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="agencia" class="form-label">Agência</label>
+                                    <input type="text" class="form-control" id="agencia" name="agencia">
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="numero_conta" class="form-label">Número da Conta</label>
+                                    <input type="text" class="form-control" id="numero_conta" name="numero_conta">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleCamposBancarios() {
+    const tipoBancaria = document.getElementById('tipo_bancaria');
+    const camposBancarios = document.getElementById('campos_bancarios');
+    
+    if (tipoBancaria.checked) {
+        camposBancarios.style.display = 'block';
+    } else {
+        camposBancarios.style.display = 'none';
+        // Limpar campos quando ocultar
+        document.getElementById('banco').value = '';
+        document.getElementById('cnpj').value = '';
+        document.getElementById('agencia').value = '';
+        document.getElementById('numero_conta').value = '';
+    }
+}
+
+// Máscara para CNPJ
+document.getElementById('cnpj').addEventListener('input', function(e) {
+    let value = e.target.value.replace(/\D/g, '');
+    value = value.replace(/(\d{2})(\d)/, '$1.$2');
+    value = value.replace(/(\d{3})(\d)/, '$1.$2');
+    value = value.replace(/(\d{3})(\d)/, '$1/$2');
+    value = value.replace(/(\d{4})(\d)/, '$1-$2');
+    e.target.value = value;
+});
+</script>
+{% endblock %}

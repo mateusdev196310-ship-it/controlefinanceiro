@@ -1,0 +1,52 @@
+{% extends 'financas/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container">
+    <h2>Teste de Formulário</h2>
+    <form method="post" action="{% url 'adicionar_transacao' %}">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="descricao" class="form-label">Descrição</label>
+            <input type="text" class="form-control" id="descricao" name="descricao" value="Teste" required>
+        </div>
+        <div class="mb-3">
+            <label for="valor" class="form-label">Valor</label>
+            <input type="number" class="form-control" id="valor" name="valor" value="10.50" step="0.01" required>
+        </div>
+        <div class="mb-3">
+            <label for="categoria" class="form-label">Categoria</label>
+            <select class="form-select" id="categoria" name="categoria" required>
+                <option value="6">Cartão Débito</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="conta" class="form-label">Conta</label>
+            <select class="form-select" id="conta" name="conta" required>
+                <option value="7">Bancoi do Brasil - Mateus</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="tipo" class="form-label">Tipo</label>
+            <select class="form-select" id="tipo" name="tipo" required>
+                <option value="receita">Receita</option>
+                <option value="despesa">Despesa</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Salvar Teste</button>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Formulário de teste carregado');
+    const form = document.querySelector('form');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            console.log('Submit do formulário de teste detectado');
+            console.log('Dados do formulário:', new FormData(form));
+        });
+    }
+});
+</script>
+{% endblock %}

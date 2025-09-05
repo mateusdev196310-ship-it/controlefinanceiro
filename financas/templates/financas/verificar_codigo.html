@@ -1,0 +1,184 @@
+{% extends 'financas/base.html' %}
+{% load static %}
+
+{% block title %}Verificar Código - Sistema Financeiro{% endblock %}
+
+{% block extra_css %}
+<style>
+    .verificacao-container {
+        max-width: 500px;
+        margin: 3rem auto;
+        padding: 2rem;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        text-align: center;
+    }
+    
+    .codigo-input {
+        width: 100%;
+        padding: 1rem;
+        font-size: 2rem;
+        text-align: center;
+        letter-spacing: 0.5rem;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        margin: 1.5rem 0;
+        font-family: 'Courier New', monospace;
+    }
+    
+    .codigo-input:focus {
+        outline: none;
+        border-color: #007bff;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    }
+    
+    .btn-primary {
+        background-color: #007bff;
+        border-color: #007bff;
+        padding: 0.75rem 2rem;
+        font-size: 1.1rem;
+        border-radius: 5px;
+        cursor: pointer;
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+    
+    .btn-primary:hover {
+        background-color: #0056b3;
+        border-color: #0056b3;
+    }
+    
+    .btn-secondary {
+        background-color: #6c757d;
+        border-color: #6c757d;
+        color: white;
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        border-radius: 5px;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #545b62;
+        border-color: #545b62;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .alert {
+        padding: 0.75rem 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+        border-radius: 5px;
+    }
+    
+    .alert-danger {
+        color: #721c24;
+        background-color: #f8d7da;
+        border-color: #f5c6cb;
+    }
+    
+    .alert-success {
+        color: #155724;
+        background-color: #d4edda;
+        border-color: #c3e6cb;
+    }
+    
+    .text-muted {
+        color: #6c757d;
+        font-size: 0.9rem;
+    }
+    
+    .icon {
+        font-size: 3rem;
+        color: #007bff;
+        margin-bottom: 1rem;
+    }
+    
+    .reenviar-link {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #eee;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="verificacao-container">
+    <div class="icon">📧</div>
+    <h2>Verificar Código</h2>
+    <p class="text-muted">Digite o código de 6 dígitos enviado para seu email</p>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    <form method="post" id="verificacaoForm">
+        {% csrf_token %}
+        
+        <input 
+            type="text" 
+            class="codigo-input" 
+            id="codigo" 
+            name="codigo" 
+            placeholder="000000"
+            maxlength="6"
+            pattern="[0-9]{6}"
+            required
+            autocomplete="off"
+        >
+        
+        <button type="submit" class="btn btn-primary">Verificar Código</button>
+    </form>
+    
+    <div class="reenviar-link">
+        <p class="text-muted">Não recebeu o código?</p>
+        <a href="{% url 'reenviar_codigo' %}" class="btn btn-secondary">Reenviar Código</a>
+    </div>
+    
+    <div style="margin-top: 2rem;">
+        <a href="{% url 'registro' %}" class="text-muted">← Voltar ao cadastro</a>
+    </div>
+</div>
+
+<script>
+// Permitir apenas números no campo de código
+document.getElementById('codigo').addEventListener('input', function() {
+    this.value = this.value.replace(/[^0-9]/g, '');
+    
+    // Auto-submit quando 6 dígitos forem inseridos
+    if (this.value.length === 6) {
+        document.getElementById('verificacaoForm').submit();
+    }
+});
+
+// Focar no campo ao carregar a página
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('codigo').focus();
+});
+
+// Validação do formulário
+document.getElementById('verificacaoForm').addEventListener('submit', function(e) {
+    const codigo = document.getElementById('codigo').value;
+    
+    if (codigo.length !== 6) {
+        e.preventDefault();
+        alert('Por favor, digite um código de 6 dígitos.');
+        return;
+    }
+    
+    if (!/^[0-9]{6}$/.test(codigo)) {
+        e.preventDefault();
+        alert('O código deve conter apenas números.');
+        return;
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,792 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle Financeiro</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{% static 'financas/css/header.css' %}">
+    {% block extra_css %}{% endblock %}
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #6c757d;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        /* Corrigir cursor em elementos não editáveis */
+        .card-title, .card-header, .text-xs, .font-weight-bold, 
+        .h5, .h4, .h6, .mb-0, .text-uppercase, .text-success, 
+        .text-danger, .text-info, .text-gray-800, label, span, div:not([contenteditable]) {
+            cursor: default !important;
+            user-select: none;
+        }
+        
+        /* Permitir seleção de texto apenas em elementos específicos */
+        p, .table td, .table th, .form-control, input, textarea, select {
+            user-select: text;
+        }
+        
+        /* Cursor pointer apenas para elementos clicáveis */
+        button, .btn, a, [role="button"], .clickable {
+            cursor: pointer !important;
+            user-select: none;
+        }
+        
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 250px;
+            background: linear-gradient(135deg, var(--primary-color) 0%, #5a32a3 100%);
+            color: white;
+            z-index: 1000;
+            transition: all 0.3s;
+            overflow-y: auto;
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .sidebar-header h3 {
+            color: white;
+            font-size: 1.2rem;
+            margin: 0;
+        }
+        
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .sidebar-menu li {
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .sidebar-menu a {
+            display: block;
+            padding: 15px 20px;
+            color: rgba(255,255,255,0.8);
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+        
+        .sidebar-menu a:hover,
+        .sidebar-menu a.active {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+            padding-left: 30px;
+        }
+        
+        .sidebar-menu i {
+            margin-right: 10px;
+            width: 20px;
+        }
+        
+        .main-content {
+            margin-left: 250px;
+            min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+        
+        .top-navbar {
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 15px 30px;
+            margin-bottom: 30px;
+        }
+        
+        .content-wrapper {
+            padding: 0 30px 30px 30px;
+        }
+        
+        .card {
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            border: none;
+        }
+        
+        .btn-purple {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+        }
+        
+        .btn-purple:hover {
+            background-color: #5a32a3;
+            color: white;
+        }
+        
+        .dropdown-submenu {
+            position: relative;
+        }
+        
+        .dropdown-submenu .dropdown-menu {
+            top: 0;
+            left: 100%;
+            margin-top: -1px;
+        }
+        
+        /* Overlay para mobile */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Menu fixo para mobile */
+        .mobile-menu-toggle {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1200;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: none;
+        }
+        
+        .mobile-menu-toggle:hover {
+            background: #0056b3;
+            color: white;
+        }
+        
+        .mobile-menu-toggle i {
+            font-size: 18px;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                margin-left: 0;
+            }
+            
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            
+            .main-content {
+                margin-left: 0;
+                transition: none;
+                padding: 60px 8px 15px 8px !important;
+            }
+            
+            .main-content.active {
+                margin-left: 0;
+            }
+            
+            #sidebarToggle {
+                display: none !important;
+            }
+            
+            .mobile-menu-toggle {
+                display: block;
+            }
+            
+            /* Melhorar responsividade dos cards */
+            .col-md-3, .col-md-4, .col-md-6 {
+                margin-bottom: 15px;
+            }
+            
+            .card {
+                margin-bottom: 15px;
+                border-radius: 8px;
+            }
+            
+            /* Botões em mobile - mais proporcionais */
+            .d-flex.justify-content-between {
+                flex-direction: column;
+                gap: 12px;
+            }
+            
+            .d-flex.justify-content-between > div {
+                width: 100%;
+                display: flex;
+                gap: 10px;
+            }
+            
+            .btn {
+                flex: 1;
+                margin-bottom: 10px;
+                padding: 12px 10px;
+                font-size: 14px;
+                white-space: nowrap;
+                border-radius: 6px;
+            }
+            
+            .btn.me-2 {
+                margin-right: 0 !important;
+            }
+            
+            /* Cards de resumo - ocupam quase toda largura */
+            .row .col-md-3 {
+                flex: 0 0 calc(50% - 8px);
+                max-width: calc(50% - 8px);
+                padding: 0 4px;
+                margin-bottom: 12px;
+            }
+            
+            .row .col-md-4 {
+                flex: 0 0 calc(50% - 8px);
+                max-width: calc(50% - 8px);
+                padding: 0 4px;
+                margin-bottom: 12px;
+            }
+            
+            /* Cards maiores ocupam largura total */
+            .row .col-md-6,
+            .row .col-md-8,
+            .row .col-md-12 {
+                flex: 0 0 calc(100% - 8px);
+                max-width: calc(100% - 8px);
+                padding: 0 4px;
+                margin-bottom: 15px;
+            }
+            
+            /* Melhorar espaçamento dos cards */
+            .card-body {
+                padding: 16px 12px;
+            }
+            
+            .card-header {
+                padding: 12px 16px;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            
+            /* Melhorar legibilidade dos textos nos cards */
+            .text-xs {
+                font-size: 11px !important;
+                font-weight: 600 !important;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            
+            .h5.mb-0.font-weight-bold,
+            .h4.mb-0.font-weight-bold,
+            .h6.mb-0.font-weight-bold {
+                font-size: 1.1rem !important;
+                color: #2c3e50 !important;
+                font-weight: 700 !important;
+            }
+            
+            /* Formulários mais compactos */
+            .form-control {
+                padding: 8px 10px;
+                font-size: 14px;
+                margin-bottom: 10px;
+            }
+            
+            .form-label {
+                font-weight: 600;
+                margin-bottom: 4px;
+                font-size: 13px;
+            }
+            
+            /* Tabelas responsivas */
+            .table-responsive {
+                font-size: 12px;
+            }
+            
+            .table th,
+            .table td {
+                padding: 6px 3px;
+                white-space: nowrap;
+            }
+            
+            /* Header da empresa mais compacto */
+            .company-info {
+                display: none;
+            }
+            
+            /* Header mobile melhorado */
+            .top-navbar {
+                padding: 8px 12px;
+                background: #fff;
+                border-bottom: 1px solid #dee2e6;
+            }
+            
+            .top-navbar h4 {
+                font-size: 1.1rem;
+                margin: 0;
+            }
+            
+            /* Botão do menu mobile menor e melhor posicionado */
+            #sidebarToggle {
+                padding: 6px 10px;
+                font-size: 16px;
+                border: 1px solid #6c757d;
+                background: transparent;
+            }
+            
+            #sidebarToggle:hover {
+                background: #f8f9fa;
+            }
+            
+            /* Dropdown do usuário mais compacto */
+            .dropdown-toggle {
+                padding: 6px 10px;
+                font-size: 14px;
+                border: 1px solid #0d6efd;
+            }
+            
+            .dropdown-toggle .fas {
+                font-size: 14px;
+            }
+            
+            /* Data no header menor */
+            .text-muted {
+                font-size: 12px;
+                display: none; /* Ocultar data em mobile para economizar espaço */
+            }
+            
+            /* Dropdown menu mais compacto */
+            .dropdown-menu {
+                font-size: 13px;
+                min-width: 200px;
+            }
+            
+            .dropdown-item-text {
+                padding: 4px 12px;
+            }
+            
+            .dropdown-item {
+                padding: 6px 12px;
+                font-size: 13px;
+            }
+            
+            /* Títulos menores */
+            h1 {
+                font-size: 1.6rem;
+            }
+            
+            h2 {
+                font-size: 1.4rem;
+                margin-bottom: 10px;
+            }
+            
+            h3 {
+                font-size: 1.2rem;
+            }
+            
+            /* Melhorar espaçamento geral */
+            .container-fluid {
+                padding: 0 12px;
+            }
+            
+            .row {
+                margin: 0 -6px;
+            }
+            
+            .col, .col-12 {
+                padding: 0 6px;
+            }
+            
+            /* Melhorar espaçamento entre seções */
+            .mb-4 {
+                margin-bottom: 1.5rem !important;
+            }
+            
+            .mb-3 {
+                margin-bottom: 1rem !important;
+            }
+            
+            /* Ajustar content wrapper */
+            .content-wrapper {
+                padding: 0 12px 20px 12px;
+            }
+            
+            /* Sidebar mobile melhorada */
+            .sidebar {
+                width: 280px;
+            }
+            
+            .sidebar-header h3 {
+                font-size: 1.1rem;
+                padding: 15px;
+            }
+            
+            .sidebar-menu li a {
+                padding: 12px 20px;
+                font-size: 14px;
+            }
+            
+            .sidebar-menu li a i {
+                font-size: 14px;
+                width: 20px;
+            }
+            
+            .main-header {
+                padding: 10px 15px;
+            }
+            
+            .main-header .logo {
+                font-size: 18px;
+            }
+            
+            /* Filtros mais amigáveis */
+            .collapse .card-body {
+                padding: 15px;
+            }
+            
+            .row.g-3 > * {
+                margin-bottom: 15px;
+            }
+            
+            /* Títulos mais compactos */
+            h2 {
+                font-size: 24px;
+                margin-bottom: 20px;
+            }
+            
+            h4, h5, h6 {
+                font-size: 18px;
+            }
+        }
+        
+        .main-content {
+            padding-top: 70px; /* Espaço para o cabeçalho fixo */
+        }
+        
+        .main-content.no-sidebar {
+            margin-left: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Main Header -->
+    <header class="main-header{% if not user.is_authenticated %} no-sidebar{% endif %}">
+        <a href="{% url 'dashboard' %}" class="logo">
+            <i class="{{ COMPANY_INFO.logo_icon }}"></i>
+            <span>{{ COMPANY_INFO.name }}</span>
+        </a>
+        
+        <div class="header-center">
+            <div class="company-info">
+                <span title="Telefone">
+                    <i class="fas fa-phone"></i>
+                    {{ COMPANY_INFO.phone }}
+                </span>
+                <div class="separator"></div>
+                <span title="Email">
+                    <i class="fas fa-envelope"></i>
+                    {{ COMPANY_INFO.email }}
+                </span>
+                <div class="separator"></div>
+                <span title="Website">
+                    <i class="fas fa-globe"></i>
+                    {{ COMPANY_INFO.website }}
+                </span>
+            </div>
+        </div>
+        
+        {% if user.is_authenticated %}
+        <div class="header-user-menu">
+            <!-- Menu do Usuário -->
+            <div class="dropdown">
+                <button class="btn btn-outline-light dropdown-toggle d-flex align-items-center" type="button" id="userMenuDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-user-circle me-2"></i>
+                    <span class="d-none d-sm-inline">{{ user.username }}</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userMenuDropdown">
+                    <li>
+                        <div class="dropdown-header">
+                            <strong>Conta Logada</strong>
+                        </div>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <div class="dropdown-item-text">
+                            <div class="d-flex flex-column">
+                                <small class="text-muted">Usuário:</small>
+                                <strong>{{ user.username }}</strong>
+                            </div>
+                        </div>
+                    </li>
+                    {% if user.cpf %}
+                    <li>
+                        <div class="dropdown-item-text">
+                            <div class="d-flex flex-column">
+                                <small class="text-muted">CPF:</small>
+                                <strong>{{ user.cpf }}</strong>
+                            </div>
+                        </div>
+                    </li>
+                    {% endif %}
+                    {% if user.cnpj %}
+                    <li>
+                        <div class="dropdown-item-text">
+                            <div class="d-flex flex-column">
+                                <small class="text-muted">CNPJ:</small>
+                                <strong>{{ user.cnpj }}</strong>
+                            </div>
+                        </div>
+                    </li>
+                    {% endif %}
+                    {% if user.email %}
+                    <li>
+                        <div class="dropdown-item-text">
+                            <div class="d-flex flex-column">
+                                <small class="text-muted">Email:</small>
+                                <strong>{{ user.email }}</strong>
+                            </div>
+                        </div>
+                    </li>
+                    {% endif %}
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <form method="post" action="{% url 'logout' %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="dropdown-item text-danger border-0 bg-transparent w-100 text-start">
+                                <i class="fas fa-sign-out-alt me-2"></i>
+                                Sair
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </header>
+
+    <!-- Sidebar Overlay -->
+    {% if user.is_authenticated %}
+    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="sidebar-header">
+            <h3><i class="fas fa-chart-line"></i> Controle Financeiro</h3>
+        </div>
+        <ul class="sidebar-menu">
+            <li>
+                <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'transacoes' %}" class="{% if request.resolver_match.url_name == 'transacoes' %}active{% endif %}">
+                    <i class="fas fa-list"></i> Transações
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'adicionar_transacao' %}" class="{% if request.resolver_match.url_name == 'adicionar_transacao' %}active{% endif %}">
+                    <i class="fas fa-plus"></i> Nova Transação
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'categorias' %}" class="{% if request.resolver_match.url_name == 'categorias' %}active{% endif %}">
+                    <i class="fas fa-tags"></i> Categorias
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'adicionar_categoria' %}" class="{% if request.resolver_match.url_name == 'adicionar_categoria' %}active{% endif %}">
+                    <i class="fas fa-plus"></i> Nova Categoria
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'adicionar_despesa_parcelada' %}" class="{% if request.resolver_match.url_name == 'adicionar_despesa_parcelada' %}active{% endif %}">
+                    <i class="fas fa-credit-card"></i> Despesa Parcelada
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'despesas_parceladas' %}" class="{% if request.resolver_match.url_name == 'despesas_parceladas' %}active{% endif %}">
+                    <i class="fas fa-money-bill-wave"></i> Parceladas
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'relatorios' %}" class="{% if request.resolver_match.url_name == 'relatorios' %}active{% endif %}">
+                    <i class="fas fa-chart-bar"></i> Relatórios
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'contas' %}" class="{% if request.resolver_match.url_name == 'contas' %}active{% endif %}">
+                    <i class="fas fa-university"></i> Contas
+                </a>
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
+
+    <!-- Main Content -->
+    <div class="main-content{% if not user.is_authenticated %} no-sidebar{% endif %}">
+        <div class="top-navbar">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-outline-secondary d-md-none me-3" id="sidebarToggle">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h4 class="mb-0">{% block page_title %}Controle Financeiro{% endblock %}</h4>
+                </div>
+                
+                <!-- Botão de menu fixo para mobile -->
+                <button class="mobile-menu-toggle" id="mobileMenuToggle">
+                    <i class="fas fa-bars"></i>
+                </button>
+                
+                <div class="d-flex align-items-center">
+                    <div class="text-muted">
+                        <i class="fas fa-calendar"></i> {{ "now"|date:"d/m/Y" }}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="content-wrapper">
+             <div class="container-fluid">
+                 <!-- Mensagens Globais do Sistema -->
+                 {% if messages %}
+                     <div class="messages-container mb-3">
+                         {% for message in messages %}
+                             <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                 {{ message }}
+                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                             </div>
+                         {% endfor %}
+                     </div>
+                 {% endif %}
+                 
+                 {% block content %}{% endblock %}
+             </div>
+         </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1055;">
+        <!-- Toasts will be dynamically added here -->
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        // Toast notification system
+        function showToast(message, type = 'info', duration = 5000) {
+            const toastContainer = document.querySelector('.toast-container');
+            const toastId = 'toast-' + Date.now();
+            
+            const iconMap = {
+                'success': 'fas fa-check-circle text-success',
+                'warning': 'fas fa-exclamation-triangle text-warning',
+                'danger': 'fas fa-exclamation-circle text-danger',
+                'info': 'fas fa-info-circle text-info'
+            };
+            
+            const toastHtml = `
+                <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header">
+                        <i class="${iconMap[type] || iconMap['info']} me-2"></i>
+                        <strong class="me-auto">Sistema Financeiro</strong>
+                        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${message}
+                    </div>
+                </div>
+            `;
+            
+            toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+            
+            const toastElement = document.getElementById(toastId);
+            const toast = new bootstrap.Toast(toastElement, {
+                delay: duration
+            });
+            
+            toast.show();
+            
+            // Remove toast element after it's hidden
+            toastElement.addEventListener('hidden.bs.toast', function() {
+                toastElement.remove();
+            });
+        }
+        
+        // Toggle sidebar on mobile
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            
+            function toggleSidebar() {
+                sidebar.classList.toggle('active');
+                sidebarOverlay.classList.toggle('active');
+                // Previne scroll do body quando menu está aberto
+                document.body.style.overflow = sidebar.classList.contains('active') ? 'hidden' : '';
+            }
+            
+            function closeSidebar() {
+                sidebar.classList.remove('active');
+                sidebarOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+            
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', toggleSidebar);
+            }
+            
+            // Mobile menu toggle
+            const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+            if (mobileMenuToggle) {
+                mobileMenuToggle.addEventListener('click', toggleSidebar);
+            }
+            
+            // Fechar sidebar ao clicar no overlay
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', closeSidebar);
+            }
+            
+            // Fechar sidebar ao pressionar ESC
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+                    closeSidebar();
+                }
+            });
+            
+            // Fechar sidebar automaticamente em telas maiores
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768 && sidebar.classList.contains('active')) {
+                    closeSidebar();
+                }
+            });
+            
+            // Auto-dismiss success messages after 5 seconds
+            const successAlerts = document.querySelectorAll('.alert-success');
+            successAlerts.forEach(function(alert) {
+                setTimeout(function() {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000);
+            });
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

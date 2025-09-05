@@ -1,0 +1,243 @@
+{% extends 'financas/base.html' %}
+{% load static %}
+
+{% block page_title %}Adicionar Despesa Parcelada{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-credit-card me-2"></i>
+                        Adicionar Despesa Parcelada
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Mensagens agora são exibidas globalmente no base.html -->
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="descricao" class="form-label">
+                                        <i class="fas fa-tag me-1"></i>
+                                        Descrição
+                                    </label>
+                                    <input type="text" class="form-control" id="descricao" name="descricao" required>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="valor_total" class="form-label">
+                                        <i class="fas fa-dollar-sign me-1"></i>
+                                        Valor Total
+                                    </label>
+                                    <input type="text" class="form-control" id="valor_total" name="valor_total" data-currency="true" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="conta" class="form-label">
+                                        <i class="fas fa-university me-1"></i>
+                                        Conta
+                                    </label>
+                                    <select class="form-select" id="conta" name="conta" required>
+                                        <option value="">Selecione uma conta</option>
+                                        {% for conta in contas %}
+                                            <option value="{{ conta.id }}">{{ conta.nome }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="categoria" class="form-label">
+                                        <i class="fas fa-list me-1"></i>
+                                        Categoria
+                                    </label>
+                                    <select class="form-select" id="categoria" name="categoria" required>
+                                        <option value="">Selecione uma categoria</option>
+                                        {% for categoria in categorias %}
+                                            <option value="{{ categoria.id }}">{{ categoria.nome }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="responsavel" class="form-label">
+                                        <i class="fas fa-user me-1"></i>
+                                        Responsável
+                                    </label>
+                                    <input type="text" class="form-control" id="responsavel" name="responsavel">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="total_parcelas" class="form-label">
+                                        <i class="fas fa-calculator me-1"></i>
+                                        Número de Parcelas
+                                    </label>
+                                    <input type="number" min="2" max="60" class="form-control" id="total_parcelas" name="total_parcelas" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="data_primeira_parcela" class="form-label">
+                                        <i class="fas fa-calendar me-1"></i>
+                                        Data da Primeira Parcela
+                                    </label>
+                                    <input type="date" class="form-control" id="data_primeira_parcela" name="data_primeira_parcela" required>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="intervalo" class="form-label">
+                                        <i class="fas fa-clock me-1"></i>
+                                        Intervalo
+                                    </label>
+                                    <select class="form-select" id="intervalo" name="intervalo" required>
+                                        <option value="mensal">Mensal</option>
+                                        <option value="quinzenal">Quinzenal</option>
+                                        <option value="semanal">Semanal</option>
+                                        <option value="personalizado">Personalizado (dias)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row" id="intervalo_personalizado" style="display: none;">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="intervalo_dias" class="form-label">
+                                        <i class="fas fa-hashtag me-1"></i>
+                                        Número de Dias
+                                    </label>
+                                    <input type="number" min="1" max="365" class="form-control" id="intervalo_dias" name="intervalo_dias">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mt-4">
+                            <div class="card-body bg-light">
+                                <h6 class="card-title">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Resumo da Despesa Parcelada
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <strong>Valor por Parcela:</strong>
+                                        <span id="valor_parcela" class="text-primary">R$ 0,00</span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Total de Parcelas:</strong>
+                                        <span id="resumo_parcelas" class="text-info">0</span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Valor Total:</strong>
+                                        <span id="resumo_total" class="text-success">R$ 0,00</span>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <strong>Intervalo:</strong>
+                                        <span id="resumo_intervalo" class="text-warning">Mensal</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'despesas_parceladas' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>
+                                Voltar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>
+                                Criar Despesa Parcelada
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Atualizar resumo em tempo real
+function atualizarResumo() {
+    const valorTotalField = document.getElementById('valor_total');
+    let valorTotal = 0;
+    
+    // Usa o formatador de moeda se disponível, senão faz parsing manual
+    if (window.currencyFormatter) {
+        valorTotal = window.currencyFormatter.getNumericValue(valorTotalField);
+    } else {
+        const value = valorTotalField.value.replace(/\./g, '').replace(',', '.');
+        valorTotal = parseFloat(value) || 0;
+    }
+    
+    const totalParcelas = parseInt(document.getElementById('total_parcelas').value) || 0;
+    const intervalo = document.getElementById('intervalo').value;
+    
+    const valorParcela = totalParcelas > 0 ? valorTotal / totalParcelas : 0;
+    
+    document.getElementById('valor_parcela').textContent = 
+        'R$ ' + valorParcela.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('resumo_parcelas').textContent = totalParcelas;
+    document.getElementById('resumo_total').textContent = 
+        'R$ ' + valorTotal.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    
+    const intervalos = {
+        'mensal': 'Mensal',
+        'quinzenal': 'Quinzenal', 
+        'semanal': 'Semanal',
+        'personalizado': 'Personalizado'
+    };
+    document.getElementById('resumo_intervalo').textContent = intervalos[intervalo] || 'Mensal';
+}
+
+// Mostrar/ocultar campo de dias personalizados
+function toggleIntervaloPersonalizado() {
+    const intervalo = document.getElementById('intervalo').value;
+    const divPersonalizado = document.getElementById('intervalo_personalizado');
+    
+    if (intervalo === 'personalizado') {
+        divPersonalizado.style.display = 'block';
+        document.getElementById('intervalo_dias').required = true;
+    } else {
+        divPersonalizado.style.display = 'none';
+        document.getElementById('intervalo_dias').required = false;
+    }
+}
+
+// Event listeners
+document.getElementById('valor_total').addEventListener('input', atualizarResumo);
+document.getElementById('valor_total').addEventListener('currencyChanged', atualizarResumo);
+document.getElementById('total_parcelas').addEventListener('input', atualizarResumo);
+document.getElementById('intervalo').addEventListener('change', function() {
+    toggleIntervaloPersonalizado();
+    atualizarResumo();
+});
+
+// Definir data padrão como próximo mês
+document.addEventListener('DOMContentLoaded', function() {
+    const hoje = new Date();
+    const proximoMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 1);
+    const dataFormatada = proximoMes.toISOString().split('T')[0];
+    document.getElementById('data_primeira_parcela').value = dataFormatada;
+    
+    atualizarResumo();
+});
+</script>
+
+<script src="{% static 'financas/js/currency-formatter.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,260 @@
+{% extends 'financas/base.html' %}
+{% load static %}
+{% load currency_filters %}
+
+{% block page_title %}Despesas Parceladas{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-credit-card me-2"></i>
+            Despesas Parceladas
+        </h2>
+        <a href="{% url 'adicionar_despesa_parcelada' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>
+            Nova Despesa Parcelada
+        </a>
+    </div>
+    
+    {% if despesas %}
+        <div class="row">
+            {% for despesa in despesas %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 text-truncate" title="{{ despesa.descricao }}">
+                                {{ despesa.descricao }}
+                            </h6>
+                            <span class="badge" style="background-color: {{ despesa.categoria.cor }}; color: white;">
+                                {{ despesa.categoria.nome }}
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <small class="text-muted">Valor Total</small>
+                                    <div class="h5 text-success mb-0">
+                                        {{ despesa.valor_total|currency_br }}
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Por Parcela</small>
+                                    <div class="h6 text-primary mb-0">
+                                        {{ despesa.valor_parcela|currency_br }}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Status de Pagamento -->
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <small class="text-muted">Pago</small>
+                                    <div class="small text-success fw-bold">
+                                        {{ despesa.get_valor_pago|currency_br }}
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Devido</small>
+                                    <div class="small text-danger fw-bold">
+                                        {{ despesa.get_valor_pendente|currency_br }}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <small class="text-muted">Parcelas</small>
+                                    <div class="fw-bold">{{ despesa.numero_parcelas }}x</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Intervalo</small>
+                                    <div class="fw-bold">{{ despesa.get_intervalo_tipo_display }}</div>
+                                </div>
+                            </div>
+                            
+                            {% if despesa.responsavel %}
+                                <div class="mb-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-user me-1"></i>
+                                        Responsável: {{ despesa.responsavel }}
+                                    </small>
+                                </div>
+                            {% endif %}
+                            
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    Primeira parcela: {{ despesa.data_primeira_parcela|date:"d/m/Y" }}
+                                </small>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>
+                                    Criada em: {{ despesa.criada_em|date:"d/m/Y H:i" }}
+                                </small>
+                            </div>
+                            
+                            {% if not despesa.parcelas_geradas %}
+                                <div class="alert alert-warning py-2 mb-0">
+                                    <small>
+                                        <i class="fas fa-exclamation-triangle me-1"></i>
+                                        Parcelas não geradas
+                                    </small>
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'detalhes_despesa_parcelada' despesa.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i>
+                                    Detalhes
+                                </a>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'detalhes_despesa_parcelada' despesa.id %}">
+                                                <i class="fas fa-list me-1"></i>
+                                                Ver Parcelas
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="#" onclick="confirmarExclusao({{ despesa.id }}, '{{ despesa.descricao }}')">
+                                                <i class="fas fa-trash me-1"></i>
+                                                Excluir
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Resumo das despesas parceladas -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-chart-bar me-1"></i>
+                            Resumo das Despesas Parceladas
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-2">
+                                <div class="border-end">
+                                    <h4 class="text-primary">{{ total_despesas }}</h4>
+                                    <small class="text-muted">Total de Despesas</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="border-end">
+                                    <h4 class="text-success">
+                                        {{ valor_total_geral|currency_br }}
+                                    </h4>
+                                    <small class="text-muted">Valor Total</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="border-end">
+                                    <h4 class="text-info">{{ total_parcelas }}</h4>
+                                    <small class="text-muted">Total de Parcelas</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="border-end">
+                                    <h4 class="text-warning">{{ despesas_ativas }}</h4>
+                                    <small class="text-muted">Ativas</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="border-end">
+                                    <h4 class="text-success">
+                                        {{ valor_total_pago|currency_br }}
+                                    </h4>
+                                    <small class="text-muted">Valor Pago</small>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <h4 class="text-danger">
+                                    {{ valor_total_pendente|currency_br }}
+                                </h4>
+                                <small class="text-muted">Saldo Devedor</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-credit-card fa-4x text-muted"></i>
+            </div>
+            <h4 class="text-muted mb-3">Nenhuma despesa parcelada encontrada</h4>
+            <p class="text-muted mb-4">
+                As despesas parceladas permitem dividir um gasto em várias parcelas,<br>
+                facilitando o controle financeiro e o planejamento de pagamentos.
+            </p>
+            <a href="{% url 'adicionar_despesa_parcelada' %}" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus me-2"></i>
+                Criar Primeira Despesa Parcelada
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Modal de confirmação de exclusão -->
+<div class="modal fade" id="modalExclusao" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                    Confirmar Exclusão
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir a despesa parcelada <strong id="nomeExclusao"></strong>?</p>
+                <div class="alert alert-warning">
+                    <small>
+                        <i class="fas fa-info-circle me-1"></i>
+                        Esta ação não pode ser desfeita. Todas as parcelas relacionadas também serão removidas.
+                    </small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" class="btn btn-danger" id="btnConfirmarExclusao">
+                    <i class="fas fa-trash me-1"></i>
+                    Excluir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmarExclusao(id, nome) {
+    document.getElementById('nomeExclusao').textContent = nome;
+    document.getElementById('btnConfirmarExclusao').onclick = function() {
+        // Aqui você implementaria a exclusão via AJAX
+        alert('Funcionalidade de exclusão será implementada em breve.');
+        bootstrap.Modal.getInstance(document.getElementById('modalExclusao')).hide();
+    };
+    new bootstrap.Modal(document.getElementById('modalExclusao')).show();
+}
+</script>
+{% endblock %}

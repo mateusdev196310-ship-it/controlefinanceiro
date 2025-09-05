@@ -1,0 +1,433 @@
+{% extends 'financas/base.html' %}
+{% load static %}
+{% load currency_filters %}
+{% load categoria_tags %}
+
+{% block extra_css %}
+<style>
+@media (max-width: 768px) {
+    /* Botões de ação principais - melhor layout mobile */
+    .d-flex.justify-content-between.align-items-center {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 15px;
+    }
+    
+    .d-flex.justify-content-between.align-items-center > div {
+        display: flex;
+        flex-direction: row;
+        gap: 12px;
+        justify-content: space-between;
+    }
+    
+    .d-flex.justify-content-between.align-items-center .btn {
+        flex: 1;
+        padding: 14px 12px;
+        font-size: 14px;
+        margin: 0;
+        white-space: nowrap;
+        border-radius: 8px;
+        font-weight: 600;
+    }
+    
+    /* Botões principais mais destacados */
+    .btn-purple {
+        background: linear-gradient(135deg, #2c3e50 0%, #5a32a3 100%) !important;
+        border: none !important;
+        box-shadow: 0 2px 8px rgba(44, 62, 80, 0.3);
+    }
+    
+    .btn-outline-secondary {
+        border: 2px solid #6c757d !important;
+        color: #6c757d !important;
+        background: white !important;
+    }
+    
+    .btn-outline-secondary:hover {
+        background: #6c757d !important;
+        color: white !important;
+    }
+    
+    /* Filtros em mobile */
+    .row.g-3 .col-md-3 {
+        flex: 0 0 50%;
+        max-width: 50%;
+        margin-bottom: 10px;
+        padding: 0 5px;
+    }
+    
+    .row.g-3 .col-md-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    /* Cards de totalizadores - 2 por linha em mobile */
+    .row.mb-3 .col-md-3 {
+        flex: 0 0 50%;
+        max-width: 50%;
+        margin-bottom: 10px;
+        padding: 0 5px;
+    }
+    
+    .row.mb-3 .card {
+        margin-bottom: 0;
+    }
+    
+    .row.mb-3 .card-body {
+        padding: 12px;
+    }
+    
+    .row.mb-3 .card-title {
+        font-size: 11px;
+        margin-bottom: 4px;
+    }
+    
+    .row.mb-3 .card h4 {
+        font-size: 14px;
+        margin-bottom: 0;
+    }
+    
+    .row.mb-3 .fa-2x {
+        font-size: 1.2em !important;
+    }
+    
+    /* Botões de filtro - melhor layout */
+    .col-12 {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+    
+    .col-12 .btn {
+        flex: 1;
+        min-width: calc(50% - 6px);
+        margin-bottom: 12px;
+        padding: 12px 16px;
+        font-size: 14px;
+        border-radius: 8px;
+        font-weight: 600;
+    }
+    
+    .col-12 .btn.me-2 {
+        margin-right: 0 !important;
+    }
+    
+    /* Botões de filtro com cores melhoradas */
+    .btn-primary {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+        border: none !important;
+        box-shadow: 0 2px 6px rgba(0, 123, 255, 0.3);
+    }
+    
+    .btn-outline-secondary {
+        border: 2px solid #6c757d !important;
+        background: white !important;
+    }
+    
+    /* Ajustar labels dos formulários */
+    .form-label {
+        font-size: 13px;
+        margin-bottom: 6px;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .form-control {
+        font-size: 14px;
+        padding: 12px 14px;
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+        margin-bottom: 12px;
+    }
+    
+    .form-control:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+    
+    /* Melhorar layout das tabelas em mobile */
+    .table-responsive {
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+    
+    .table {
+        font-size: 13px;
+        margin-bottom: 0;
+    }
+    
+    .table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        font-size: 12px;
+        padding: 12px 8px;
+        border-bottom: 2px solid #dee2e6;
+        white-space: nowrap;
+    }
+    
+    .table td {
+        padding: 10px 8px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f3f4;
+    }
+    
+    /* Melhorar botões de ação na tabela */
+    .table .btn {
+        padding: 6px 10px;
+        font-size: 12px;
+        margin: 2px;
+        border-radius: 6px;
+    }
+    
+    .table .btn-sm {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    /* Título da página menor */
+    h2 {
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Card de filtros mais compacto */
+    .card-header .btn {
+        font-size: 14px;
+        padding: 8px 0;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Transações</h2>
+            <div>
+                <a href="{% url 'adicionar_transacao' %}" class="btn btn-purple me-2">
+                    <i class="fas fa-plus"></i> Nova Transação
+                </a>
+                <a href="{% url 'adicionar_categoria' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-tags"></i> Nova Categoria
+                </a>
+            </div>
+        </div>
+        
+        <!-- Filtros Expansíveis -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <button class="btn btn-link text-decoration-none p-0 w-100 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#filtrosCollapse" aria-expanded="false" aria-controls="filtrosCollapse">
+                    <i class="fas fa-filter me-2"></i> Filtros Avançados
+                    <i class="fas fa-chevron-down float-end mt-1"></i>
+                </button>
+            </div>
+            <div class="collapse" id="filtrosCollapse">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="data_inicio" class="form-label">Data Início</label>
+                            <input type="date" class="form-control" id="data_inicio" name="data_inicio" value="{{ request.GET.data_inicio }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="data_fim" class="form-label">Data Fim</label>
+                            <input type="date" class="form-control" id="data_fim" name="data_fim" value="{{ request.GET.data_fim }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="categoria" class="form-label">Categoria</label>
+                            <select class="form-control" id="categoria" name="categoria">
+                                <option value="">Todas as categorias</option>
+                                {% for cat in categorias %}
+                                <option value="{{ cat.id }}" {% if request.GET.categoria == cat.id|stringformat:'s' %}selected{% endif %}>
+                                    {{ cat.nome }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="tipo" class="form-label">Tipo</label>
+                            <select class="form-control" id="tipo" name="tipo">
+                                <option value="">Todos os tipos</option>
+                                <option value="receita" {% if request.GET.tipo == 'receita' %}selected{% endif %}>Receita</option>
+                                <option value="despesa" {% if request.GET.tipo == 'despesa' %}selected{% endif %}>Despesa</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="responsavel" class="form-label">Responsável</label>
+                            <input type="text" class="form-control" id="responsavel" name="responsavel" value="{{ request.GET.responsavel }}" placeholder="Nome do responsável">
+                        </div>
+                        <div class="col-md-6">
+                            <label for="descricao" class="form-label">Descrição</label>
+                            <input type="text" class="form-control" id="descricao" name="descricao" value="{{ request.GET.descricao }}" placeholder="Buscar na descrição">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="fas fa-search"></i> Filtrar
+                            </button>
+                            <a href="{% url 'transacoes' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Limpar Filtros
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Totalizadores -->
+        {% if totalizadores %}
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title mb-0">Total Receitas</h6>
+                                <h4 class="mb-0">{{ totalizadores.total_receitas|currency_br }}</h4>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-arrow-up fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-danger text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title mb-0">Total Despesas</h6>
+                                <h4 class="mb-0">{{ totalizadores.total_despesas|currency_br }}</h4>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-arrow-down fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card {% if totalizadores.saldo_liquido >= 0 %}bg-primary{% else %}bg-warning{% endif %} text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title mb-0">Saldo Líquido</h6>
+                                <h4 class="mb-0">{{ totalizadores.saldo_liquido|currency_br }}</h4>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas {% if totalizadores.saldo_liquido >= 0 %}fa-chart-line{% else %}fa-exclamation-triangle{% endif %} fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title mb-0">Total Transações</h6>
+                                <h4 class="mb-0">{{ totalizadores.total_transacoes }}</h4>
+                            </div>
+                            <div class="align-self-center">
+                                <i class="fas fa-list fa-2x"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Descrição</th>
+                                <th>Categoria</th>
+                                <th>Valor</th>
+                                <th>Responsável</th>
+                                <th>Tipo</th>
+                                <th>Parcela</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transacao in transacoes %}
+                            <tr>
+                                <td>{{ transacao.data }}</td>
+                                <td>
+                                    {{ transacao.descricao }}
+                                    {% if transacao.eh_parcelada %}
+                                        <small class="text-muted d-block">
+                                            <i class="fas fa-credit-card"></i> Parcelada
+                                        </small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% categoria_badge_obj transacao.categoria %}
+                                </td>
+                                <td class="{% if transacao.tipo == 'receita' %}text-success{% else %}text-danger{% endif %}">
+                                    {{ transacao.valor|currency_br }}
+                                </td>
+                                <td>{{ transacao.responsavel|default:"-" }}</td>
+                                <td>{{ transacao.get_tipo_display }}</td>
+                                <td>
+                                    {% if transacao.eh_parcelada and transacao.numero_parcela and transacao.total_parcelas %}
+                                        <span class="badge bg-info">
+                                            {{ transacao.numero_parcela }}/{{ transacao.total_parcelas }}
+                                        </span>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'transacao_update' transacao.id %}" class="btn btn-sm btn-primary" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'excluir_transacao' transacao.id %}" class="btn btn-sm btn-danger ml-1" title="Excluir">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center">Nenhuma transação registrada</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Rotacionar ícone do filtro quando expandir/colapsar
+document.addEventListener('DOMContentLoaded', function() {
+    const filtrosCollapse = document.getElementById('filtrosCollapse');
+    const chevronIcon = document.querySelector('#filtrosCollapse').previousElementSibling.querySelector('.fa-chevron-down');
+    
+    filtrosCollapse.addEventListener('show.bs.collapse', function () {
+        chevronIcon.style.transform = 'rotate(180deg)';
+    });
+    
+    filtrosCollapse.addEventListener('hide.bs.collapse', function () {
+        chevronIcon.style.transform = 'rotate(0deg)';
+    });
+    
+    // Adicionar transição suave ao ícone
+    chevronIcon.style.transition = 'transform 0.3s ease';
+});
+</script>
+{% endblock %}

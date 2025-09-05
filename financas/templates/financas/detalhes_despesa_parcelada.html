@@ -1,0 +1,594 @@
+{% extends 'financas/base.html' %}
+{% load static %}
+{% load currency_filters %}
+
+{% block page_title %}Detalhes da Despesa Parcelada{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-credit-card me-2"></i>
+            Detalhes da Despesa Parcelada
+        </h2>
+        <div>
+            <a href="{% url 'despesas_parceladas' %}" class="btn btn-secondary me-2">
+                <i class="fas fa-arrow-left me-1"></i>
+                Voltar
+            </a>
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                <i class="fas fa-trash me-1"></i>
+                Excluir Despesa
+            </button>
+        </div>
+    </div>
+    
+    <div class="row">
+        <!-- Informações Gerais -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Informações Gerais
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <h4 class="text-primary">{{ despesa.descricao }}</h4>
+                        <span class="badge fs-6" style="background-color: {{ despesa.categoria.cor }}; color: white;">
+                            {{ despesa.categoria.nome }}
+                        </span>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-6 text-center">
+                            <div class="border-end">
+                                <h3 class="text-success mb-0">{{ despesa.valor_total|currency_br }}</h3>
+                                <small class="text-muted">Valor Total</small>
+                            </div>
+                        </div>
+                        <div class="col-6 text-center">
+                            <h4 class="text-primary mb-0">{{ despesa.valor_parcela|currency_br }}</h4>
+                            <small class="text-muted">Por Parcela</small>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">
+                                <i class="fas fa-list-ol me-1"></i>
+                                Parcelas:
+                            </span>
+                            <span class="fw-bold">{{ despesa.numero_parcelas }}x</span>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">
+                                <i class="fas fa-clock me-1"></i>
+                                Intervalo:
+                            </span>
+                            <span class="fw-bold">{{ despesa.get_intervalo_tipo_display }}</span>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                Primeira Parcela:
+                            </span>
+                            <span class="fw-bold">{{ despesa.data_primeira_parcela|date:"d/m/Y" }}</span>
+                        </div>
+                        
+                        {% if despesa.responsavel %}
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">
+                                    <i class="fas fa-user me-1"></i>
+                                    Responsável:
+                                </span>
+                                <span class="fw-bold">{{ despesa.responsavel }}</span>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">
+                                <i class="fas fa-calendar-plus me-1"></i>
+                                Criada em:
+                            </span>
+                            <span class="fw-bold">{{ despesa.criada_em|date:"d/m/Y H:i" }}</span>
+                        </div>
+                    </div>
+                    
+                    {% if parcelas_recem_geradas %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-1"></i>
+                            Parcelas geradas com sucesso
+                        </div>
+                    {% elif not despesa.parcelas_geradas %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            Parcelas não foram geradas
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Lista de Parcelas -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list me-2"></i>
+                            Parcelas Geradas
+                        </h5>
+                        {% if parcelas %}
+                            <span class="badge bg-light text-dark">
+                                {{ parcelas.count }} parcela{{ parcelas.count|pluralize }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if parcelas %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-center">
+                                            <i class="fas fa-hashtag me-1"></i>
+                                            Parcela
+                                        </th>
+                                        <th>
+                                            <i class="fas fa-calendar me-1"></i>
+                                            Vencimento
+                                        </th>
+                                        <th class="text-end">
+                                            <i class="fas fa-dollar-sign me-1"></i>
+                                            Valor
+                                        </th>
+                                        <th class="text-center">
+                                            <i class="fas fa-flag me-1"></i>
+                                            Status
+                                        </th>
+                                        <th>
+                                            <i class="fas fa-user me-1"></i>
+                                            Responsável
+                                        </th>
+                                        <th class="text-center">
+                                            <i class="fas fa-credit-card me-1"></i>
+                                            Pagamento
+                                        </th>
+                                        <th class="text-center">
+                                            <i class="fas fa-cogs me-1"></i>
+                                            Ações
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for parcela in parcelas %}
+                                        <tr class="{% if parcela.data < today %}table-danger{% elif parcela.data == today %}table-warning{% endif %}">
+                                            <td class="text-center">
+                                                <span class="badge bg-primary">
+                                                    {{ parcela.numero_parcela }}/{{ parcela.total_parcelas }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="fw-bold">{{ parcela.data|date:"d/m/Y" }}</span>
+                                                <br>
+                                                <small class="text-muted">{{ parcela.data|date:"l" }}</small>
+                                            </td>
+                                            <td class="text-end">
+                                                <span class="h6 text-success mb-0">
+                                                    {{ parcela.valor|currency_br }}
+                                                </span>
+                                            </td>
+                                            <td class="text-center">
+                                                {% if parcela.data < today %}
+                                                    <span class="badge bg-danger">
+                                                        <i class="fas fa-exclamation-triangle me-1"></i>
+                                                        Vencida
+                                                    </span>
+                                                {% elif parcela.data == today %}
+                                                    <span class="badge bg-warning text-dark">
+                                                        <i class="fas fa-clock me-1"></i>
+                                                        Vence Hoje
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check me-1"></i>
+                                                        A Vencer
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if parcela.responsavel %}
+                                                    <span class="fw-bold">{{ parcela.responsavel }}</span>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                {% if parcela.pago %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check me-1"></i>
+                                                        Pago
+                                                    </span>
+                                                    {% if parcela.data_pagamento %}
+                                                        <br><small class="text-muted">{{ parcela.data_pagamento|date:"d/m/Y" }}</small>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="badge bg-warning text-dark">
+                                                        <i class="fas fa-clock me-1"></i>
+                                                        Pendente
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                <div class="btn-group" role="group">
+                                                    {% if parcela.pago %}
+                                                        <button type="button" class="btn btn-sm btn-outline-warning" 
+                                                                onclick="confirmarReabertura({{ parcela.id }}, '{{ parcela.descricao }}')" 
+                                                                title="Marcar como não pago">
+                                                            <i class="fas fa-undo"></i>
+                                                        </button>
+                                                    {% else %}
+                                                        <button type="button" class="btn btn-sm btn-outline-success" 
+                                                                onclick="abrirModalPagamento({{ parcela.id }}, '{{ parcela.descricao }}', {{ parcela.valor }})" 
+                                                                title="Marcar como pago">
+                                                            <i class="fas fa-check"></i>
+                                                        </button>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
+                            </div>
+                            <h5 class="text-muted mb-2">Nenhuma parcela encontrada</h5>
+                            <p class="text-muted mb-3">
+                                As parcelas podem não ter sido geradas corretamente.<br>
+                                Verifique se o processo de criação foi concluído.
+                            </p>
+                            <button class="btn btn-warning" onclick="gerarParcelas({{ despesa.id }})">
+                                <i class="fas fa-sync-alt me-1"></i>
+                                Tentar Gerar Parcelas
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if parcelas %}
+        <!-- Resumo Estatístico -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-secondary text-white">
+                        <h6 class="mb-0">
+                            <i class="fas fa-chart-pie me-2"></i>
+                            Resumo Estatístico
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <div class="border-end">
+                                    <h4 class="text-primary mb-1">{{ parcelas.count }}</h4>
+                                    <small class="text-muted">Total de Parcelas</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border-end">
+                                    <h4 class="text-success mb-1">{{ despesa.valor_total|currency_br }}</h4>
+                                    <small class="text-muted">Valor Total</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border-end">
+                                    <h4 class="text-info mb-1">{{ despesa.valor_parcela|currency_br }}</h4>
+                                    <small class="text-muted">Valor por Parcela</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <h4 class="text-warning mb-1">{{ despesa.get_intervalo_tipo_display }}</h4>
+                                <small class="text-muted">Intervalo</small>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-3">
+                        
+                        <div class="row text-center">
+                            <div class="col-md-4">
+                                <div class="text-success">
+                                    <i class="fas fa-check-circle fa-2x mb-2"></i>
+                                    <h5>{{ despesa.get_parcelas_pagas.count }}</h5>
+                                    <small>Pagas</small>
+                                    <div class="mt-1">
+                                        <small class="text-muted">{{ despesa.get_valor_pago|currency_br }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-warning">
+                                    <i class="fas fa-clock fa-2x mb-2"></i>
+                                    <h5>{{ despesa.get_parcelas_pendentes.count }}</h5>
+                                    <small>Pendentes</small>
+                                    <div class="mt-1">
+                                        <small class="text-muted">{{ despesa.get_valor_pendente|currency_br }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-info">
+                                    <i class="fas fa-percentage fa-2x mb-2"></i>
+                                    <h5>{% widthratio despesa.get_parcelas_pagas.count despesa.get_parcelas.count 100 %}%</h5>
+                                    <small>Progresso</small>
+                                    <div class="mt-1">
+                                        <div class="progress" style="height: 6px;">
+                                            <div class="progress-bar bg-success" role="progressbar" 
+                                                 style="width: {% widthratio despesa.get_parcelas_pagas.count despesa.get_parcelas.count 100 %}%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Modal de Confirmação de Exclusão -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="deleteModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Confirmar Exclusão
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fas fa-trash fa-3x text-danger mb-3"></i>
+                    <h5>Tem certeza que deseja excluir esta despesa parcelada?</h5>
+                </div>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Atenção:</strong> Esta ação irá excluir permanentemente:
+                    <ul class="mb-0 mt-2">
+                        <li>A despesa parcelada "{{ despesa.descricao }}"</li>
+                        <li>Todas as {{ parcelas.count }} parcelas associadas</li>
+                        <li>Todos os registros de pagamento</li>
+                    </ul>
+                </div>
+                <p class="text-muted mb-0">
+                    <strong>Esta ação não pode ser desfeita.</strong>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>
+                    Cancelar
+                </button>
+                <form method="post" action="{% url 'excluir_despesa_parcelada' despesa.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash me-1"></i>
+                        Excluir Definitivamente
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Pagamento -->
+<div class="modal fade" id="modalPagamento" tabindex="-1" aria-labelledby="modalPagamentoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalPagamentoLabel">
+                    <i class="fas fa-credit-card me-2"></i>
+                    Registrar Pagamento
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="formPagamento" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Parcela:</label>
+                        <p id="descricaoParcela" class="text-muted mb-3"></p>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="dataPagamento" class="form-label">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    Data do Pagamento *
+                                </label>
+                                <input type="date" class="form-control" id="dataPagamento" name="data_pagamento" required>
+                                <div class="form-text">Data em que o pagamento foi realizado</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="valorPago" class="form-label">
+                                    <i class="fas fa-dollar-sign me-1"></i>
+                                    Valor Pago *
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text">R$</span>
+                                    <input type="number" class="form-control" id="valorPago" name="valor_pago" 
+                                           step="0.01" min="0.01" required>
+                                </div>
+                                <div class="form-text">Valor efetivamente pago (pode ser parcial)</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Importante:</strong> Se o valor pago for menor que o valor da parcela, 
+                        será criada uma nova transação com o saldo restante.
+                    </div>
+                    
+                    <div id="alertaFechamento" class="alert alert-warning d-none">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Atenção:</strong> <span id="mensagemFechamento"></span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check me-1"></i>
+                        Confirmar Pagamento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação de Reabertura -->
+<div class="modal fade" id="modalReabertura" tabindex="-1" aria-labelledby="modalReaberturaLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="modalReaberturaLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Confirmar Reabertura de Parcela
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <i class="fas fa-undo fa-3x text-warning mb-3"></i>
+                    <h5>Tem certeza que deseja reabrir esta parcela?</h5>
+                </div>
+                <p><strong>Parcela:</strong> <span id="parcelaReabertura"></span></p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Atenção:</strong> Ao reabrir esta parcela:
+                    <ul class="mb-0 mt-2">
+                        <li>A parcela será marcada como <strong>não paga</strong></li>
+                        <li>A <strong>despesa lançada</strong> correspondente será <strong>excluída</strong> automaticamente</li>
+                        <li>O saldo da conta será ajustado</li>
+                    </ul>
+                </div>
+                <p class="text-muted mb-0">
+                    <strong>Esta ação não pode ser desfeita.</strong>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>
+                    Cancelar
+                </button>
+                <form id="formReabertura" method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-warning">
+                        <i class="fas fa-undo me-1"></i>
+                        Reabrir Parcela
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let parcelaAtual = null;
+
+function abrirModalPagamento(parcelaId, descricao, valor) {
+    parcelaAtual = parcelaId;
+    
+    // Preencher dados da parcela
+    document.getElementById('descricaoParcela').textContent = descricao;
+    document.getElementById('valorPago').value = valor;
+    
+    // Definir data padrão como hoje (corrigido para evitar problemas de fuso horário)
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    const dataFormatada = `${ano}-${mes}-${dia}`;
+    document.getElementById('dataPagamento').value = dataFormatada;
+    
+    // Configurar action do form
+    const actionUrl = `{% url 'processar_pagamento_parcela' 0 %}`.replace('0', parcelaId);
+    document.getElementById('formPagamento').action = actionUrl;
+    console.log('Form action configurado para:', actionUrl);
+    
+    // Abrir modal
+    const modal = new bootstrap.Modal(document.getElementById('modalPagamento'));
+    modal.show();
+}
+
+// Adicionar listener para debug do formulário
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('formPagamento');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            console.log('Formulário sendo submetido para:', this.action);
+            console.log('Dados do formulário:', new FormData(this));
+        });
+    }
+});
+
+// Validação de data em tempo real
+document.getElementById('dataPagamento').addEventListener('change', function() {
+    const data = this.value;
+    if (data && parcelaAtual) {
+        // Aqui poderia fazer uma verificação AJAX se a data está em mês fechado
+        // Por enquanto, apenas uma validação básica
+        const dataEscolhida = new Date(data);
+        const hoje = new Date();
+        
+        if (dataEscolhida > hoje) {
+            document.getElementById('alertaFechamento').classList.remove('d-none');
+            document.getElementById('mensagemFechamento').textContent = 
+                'Data de pagamento não pode ser no futuro.';
+        } else {
+            document.getElementById('alertaFechamento').classList.add('d-none');
+        }
+    }
+});
+
+function gerarParcelas(despesaId) {
+    // Implementar função para gerar parcelas via AJAX
+    alert('Funcionalidade de geração de parcelas será implementada em breve.');
+}
+
+function confirmarReabertura(parcelaId, descricao) {
+    // Preencher dados da parcela no modal
+    document.getElementById('parcelaReabertura').textContent = descricao;
+    
+    // Configurar action do form de reabertura
+    const actionUrl = `{% url 'marcar_parcela_nao_paga' 0 %}`.replace('0', parcelaId);
+    document.getElementById('formReabertura').action = actionUrl;
+    
+    // Abrir modal de confirmação
+    const modal = new bootstrap.Modal(document.getElementById('modalReabertura'));
+    modal.show();
+}
+</script>
+{% endblock %}

@@ -1,0 +1,133 @@
+{% extends 'financas/base.html' %}
+{% load static %}
+
+{% block title %}Transferir Dados - {{ conta_origem.nome }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exchange-alt me-2"></i>
+                        Transferir Dados da Conta
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-info-circle me-2"></i>Como funciona</h5>
+                        <p>Esta funcionalidade permite transferir todas as transações e despesas parceladas de uma conta para outra, 
+                           preservando o histórico financeiro antes de excluir a conta origem.</p>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card border-danger">
+                                <div class="card-header bg-danger text-white">
+                                    <h6 class="mb-0"><i class="fas fa-minus-circle me-2"></i>Conta Origem (será excluída)</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>Nome:</strong> {{ conta_origem.nome }}</p>
+                                    <p><strong>Banco:</strong> {{ conta_origem.banco.nome|default:"Não informado" }}</p>
+                                    <p><strong>Saldo:</strong> R$ {{ conta_origem.saldo_atual|floatformat:2 }}</p>
+                                    <hr>
+                                    <p><strong>Dados a transferir:</strong></p>
+                                    <ul>
+                                        <li>{{ qtd_transacoes }} transação(ões)</li>
+                                        <li>{{ qtd_despesas }} despesa(s) parcelada(s)</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Conta Destino</h6>
+                                </div>
+                                <div class="card-body">
+                                    <form method="post" onsubmit="return confirmarTransferencia()">
+                                        {% csrf_token %}
+                                        <div class="mb-3">
+                                            <label for="conta_destino" class="form-label">
+                                                <strong>Selecione a conta de destino:</strong>
+                                            </label>
+                                            <select class="form-select" id="conta_destino" name="conta_destino" required>
+                                                <option value="">Escolha uma conta...</option>
+                                                {% for conta in contas_destino %}
+                                                    <option value="{{ conta.id }}" data-saldo="{{ conta.saldo_atual }}" data-banco="{{ conta.banco.nome|default:'Não informado' }}">
+                                                        {{ conta.nome }} - {{ conta.banco.nome|default:"Sem banco" }} (R$ {{ conta.saldo_atual|floatformat:2 }})
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        
+                                        <div id="info_conta_destino" class="alert alert-light d-none">
+                                            <h6>Informações da conta selecionada:</h6>
+                                            <p id="info_nome"></p>
+                                            <p id="info_banco"></p>
+                                            <p id="info_saldo"></p>
+                                        </div>
+                                        
+                                        <div class="d-flex gap-2">
+                                            <button type="submit" class="btn btn-warning">
+                                                <i class="fas fa-exchange-alt me-2"></i>Transferir e Excluir
+                                            </button>
+                                            <a href="{% url 'excluir_conta_segura' conta_origem.id %}" class="btn btn-secondary">
+                                                <i class="fas fa-arrow-left me-2"></i>Voltar
+                                            </a>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-warning mt-4">
+                        <h6><i class="fas fa-exclamation-triangle me-2"></i>Importante!</h6>
+                        <ul class="mb-0">
+                            <li>Todas as transações da conta origem serão movidas para a conta destino</li>
+                            <li>Todas as despesas parceladas serão transferidas</li>
+                            <li>O saldo da conta destino será recalculado automaticamente</li>
+                            <li>A conta origem será <strong>permanentemente excluída</strong> após a transferência</li>
+                            <li>Esta operação <strong>não pode ser desfeita</strong></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('conta_destino').addEventListener('change', function() {
+    const select = this;
+    const option = select.options[select.selectedIndex];
+    const infoDiv = document.getElementById('info_conta_destino');
+    
+    if (option.value) {
+        document.getElementById('info_nome').textContent = 'Nome: ' + option.text.split(' - ')[0];
+        document.getElementById('info_banco').textContent = 'Banco: ' + option.getAttribute('data-banco');
+        document.getElementById('info_saldo').textContent = 'Saldo atual: R$ ' + parseFloat(option.getAttribute('data-saldo')).toFixed(2);
+        infoDiv.classList.remove('d-none');
+    } else {
+        infoDiv.classList.add('d-none');
+    }
+});
+
+function confirmarTransferencia() {
+    const contaDestino = document.getElementById('conta_destino');
+    const nomeDestino = contaDestino.options[contaDestino.selectedIndex].text.split(' - ')[0];
+    
+    return confirm(
+        `Confirma a transferência de todos os dados de "{{ conta_origem.nome }}" para "${nomeDestino}"?\n\n` +
+        `Esta ação irá:\n` +
+        `• Mover {{ qtd_transacoes }} transação(ões)\n` +
+        `• Mover {{ qtd_despesas }} despesa(s) parcelada(s)\n` +
+        `• Excluir permanentemente a conta "{{ conta_origem.nome }}"\n\n` +
+        `Esta operação NÃO PODE SER DESFEITA!`
+    );
+}
+</script>
+{% endblock %}

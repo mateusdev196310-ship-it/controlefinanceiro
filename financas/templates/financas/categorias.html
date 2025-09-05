@@ -1,0 +1,122 @@
+{% extends 'financas/base.html' %}
+{% load currency_filters %}
+
+{% block title %}Categorias{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">Categorias</h1>
+        <a href="{% url 'adicionar_categoria' %}" class="d-none d-sm-inline-block btn btn-sm btn-primary shadow-sm">
+            <i class="fas fa-plus fa-sm text-white-50"></i> Nova Categoria
+        </a>
+    </div>
+
+    <!-- Resumo -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total de Categorias
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_categorias }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-tags fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de Categorias -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Lista de Categorias</h6>
+        </div>
+        <div class="card-body">
+            {% if categorias %}
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Tipo</th>
+                                <th>Cor</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for categoria in categorias %}
+                            <tr>
+                                <td>
+                                    <span class="badge" style="background-color: {{ categoria.cor }}; color: white; margin-right: 8px;">
+                                        {{ categoria.nome }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if categoria.tipo == 'receita' %}
+                                        <span class="badge bg-success">Receita</span>
+                                    {% elif categoria.tipo == 'despesa' %}
+                                        <span class="badge bg-danger">Despesa</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Ambos</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="color-preview" style="width: 20px; height: 20px; background-color: {{ categoria.cor }}; border-radius: 3px;"></div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <a href="{% url 'editar_categoria' categoria.id %}" class="btn btn-sm btn-outline-primary" title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'excluir_categoria' categoria.id %}" class="btn btn-sm btn-outline-danger" title="Excluir" onclick="return confirm('Tem certeza que deseja excluir esta categoria?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-tags fa-3x text-gray-300 mb-3"></i>
+                    <h5 class="text-gray-600">Nenhuma categoria cadastrada</h5>
+                    <p class="text-gray-500 mb-4">Comece criando sua primeira categoria para organizar suas transações.</p>
+                    <a href="{% url 'adicionar_categoria' %}" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Criar Primeira Categoria
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/dataTables.bootstrap5.min.css">
+<!-- DataTables JS -->
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.11.5/js/dataTables.bootstrap5.min.js"></script>
+
+<script>
+$(document).ready(function() {
+    $('#dataTable').DataTable({
+        "language": {
+            "url": "//cdn.datatables.net/plug-ins/1.10.24/i18n/Portuguese-Brasil.json"
+        },
+        "pageLength": 25,
+        "order": [[ 0, "asc" ]]
+    });
+});
+</script>
+{% endblock %}

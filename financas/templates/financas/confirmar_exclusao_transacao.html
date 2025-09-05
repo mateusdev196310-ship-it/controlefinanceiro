@@ -1,0 +1,92 @@
+{% extends 'financas/base.html' %}
+{% load static %}
+{% load currency_filters %}
+
+{% block title %}Confirmar Exclusão - Transação{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-exclamation-triangle text-warning"></i>
+                        Confirmar Exclusão de Transação
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning" role="alert">
+                        <h5><i class="fas fa-exclamation-triangle"></i> Atenção!</h5>
+                        Você está prestes a excluir a seguinte transação. Esta ação não pode ser desfeita.
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <table class="table table-bordered">
+                                <tr>
+                                    <th width="150">Data:</th>
+                                    <td>{{ transacao.data|date:"d/m/Y" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Descrição:</th>
+                                    <td>{{ transacao.descricao }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Categoria:</th>
+                                    <td>
+                                        {% if transacao.categoria %}
+                                            <span class="badge badge-info">{{ transacao.categoria.nome }}</span>
+                                        {% else %}
+                                            <span class="text-muted">Sem categoria</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Valor:</th>
+                                    <td>
+                                        <span class="{% if transacao.tipo == 'receita' %}text-success{% else %}text-danger{% endif %}">
+                                            {% if transacao.tipo == 'receita' %}+{% else %}-{% endif %}
+                                            {{ transacao.valor|currency_br }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Responsável:</th>
+                                    <td>{{ transacao.responsavel|default:"-" }}</td>
+                                </tr>
+                                <tr>
+                                    <th>Tipo:</th>
+                                    <td>
+                                        <span class="badge {% if transacao.tipo == 'receita' %}badge-success{% else %}badge-danger{% endif %}">
+                                            {{ transacao.get_tipo_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Parcela:</th>
+                                    <td>{{ transacao.parcela|default:"-" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <form method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-danger">
+                                    <i class="fas fa-trash"></i> Confirmar Exclusão
+                                </button>
+                            </form>
+                            <a href="{% url 'transacoes' %}" class="btn btn-secondary ml-2">
+                                <i class="fas fa-arrow-left"></i> Cancelar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,555 @@
+{% extends 'financas/base.html' %}
+{% load static %}
+{% load currency_filters %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+.card-uniform {
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+}
+.card-uniform .card-header {
+    min-height: 49px;
+    display: flex;
+    align-items: center;
+}
+.card-uniform .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+.card-uniform .flex-grow-1 {
+    flex: 1;
+}
+
+@media (max-width: 768px) {
+    /* Cards de resumo - 2 por linha em mobile com melhor espaçamento */
+    .col-md-4 {
+        flex: 0 0 calc(50% - 8px);
+        max-width: calc(50% - 8px);
+        margin-bottom: 18px;
+        padding: 0 4px;
+    }
+    
+    /* Cards principais ocupam largura total */
+    .col-md-6 {
+        flex: 0 0 calc(100% - 8px);
+        max-width: calc(100% - 8px);
+        margin-bottom: 20px;
+        padding: 0 4px;
+    }
+    
+    /* Cards mais compactos */
+    .card.border-left-success,
+    .card.border-left-info,
+    .card.border-left-danger,
+    .card.border-left-primary {
+        margin-bottom: 15px;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+    
+    /* Textos do resumo financeiro - corrigir visibilidade */
+    .text-xs {
+        font-size: 12px !important;
+        color: #6c757d !important;
+    }
+    
+    .h5.mb-0.font-weight-bold {
+        font-size: 1.2rem !important;
+        color: #495057 !important;
+    }
+    
+    .h4.mb-0.font-weight-bold {
+        font-size: 1.3rem !important;
+        color: #495057 !important;
+    }
+    
+    .h6.mb-0.font-weight-bold {
+        font-size: 1rem !important;
+        color: #495057 !important;
+    }
+    
+    /* Ícones menores em mobile */
+    .fa-2x {
+        font-size: 1.3em !important;
+    }
+    
+    .fa-3x {
+        font-size: 1.6em !important;
+    }
+    
+    /* Título da página menor */
+    h2 {
+        font-size: 1.5rem;
+        margin-bottom: 15px;
+    }
+    
+    /* Ajustar espaçamento geral */
+    .row.no-gutters {
+        margin: 0;
+    }
+    
+    .col.mr-2 {
+        margin-right: 8px !important;
+    }
+    
+    /* Cards uniformes mais compactos */
+    .card-uniform .card-header {
+        min-height: 40px;
+        padding: 10px 15px;
+        font-size: 14px;
+    }
+    
+    .card-uniform .card-body {
+        padding: 15px;
+    }
+    
+    /* Resumo financeiro - melhor visibilidade */
+    .card-header.bg-info {
+        background-color: #17a2b8 !important;
+    }
+    
+    .card-header h6 {
+        color: white !important;
+        font-size: 16px !important;
+    }
+    
+    /* Colunas do resumo financeiro - melhor distribuição */
+    .col-md-3 {
+        flex: 0 0 calc(50% - 8px);
+        max-width: calc(50% - 8px);
+        margin-bottom: 18px;
+        padding: 0 4px;
+    }
+    
+    /* Cards de resumo financeiro mais compactos */
+    .card.border-left-success,
+    .card.border-left-info,
+    .card.border-left-danger,
+    .card.border-left-primary {
+        border-radius: 10px;
+        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
+        border-left-width: 5px !important;
+    }
+    
+    .card-body {
+        padding: 18px 16px;
+    }
+    
+    /* Melhorar alinhamento dos ícones */
+    .row.no-gutters {
+        align-items: center;
+    }
+    
+    .col-auto {
+        padding-left: 12px;
+    }
+    
+    /* Botões menores */
+    .btn {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+    
+    .btn-sm {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2>Dashboard</h2>
+    </div>
+</div>
+
+<!-- Script para mostrar toast de fechamento -->
+{% if info_fechamentos.tem_fechamentos %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        let message = '';
+        {% if info_fechamentos.total_contas_fechadas == info_fechamentos.total_contas %}
+            message = 'Todas as contas ({{ info_fechamentos.total_contas_fechadas }}) já foram fechadas para {{ mes_atual }}/{{ ano_atual }}.';
+        {% else %}
+            message = '{{ info_fechamentos.total_contas_fechadas }} de {{ info_fechamentos.total_contas }} contas já foram fechadas para {{ mes_atual }}/{{ ano_atual }}.';
+        {% endif %}
+        
+        {% if info_fechamentos.contas_fechadas|length <= 3 %}
+            message += '<br><small>Contas: {{ info_fechamentos.contas_fechadas|join:", " }}</small>';
+        {% else %}
+            message += '<br><small>Contas: {{ info_fechamentos.contas_fechadas|slice:":3"|join:", " }} e mais {{ info_fechamentos.contas_fechadas|length|add:"-3" }} outras</small>';
+        {% endif %}
+        
+        showToast(message, 'warning', 8000);
+    });
+</script>
+{% endif %}
+
+<!-- Cards de resumo com ícones -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Receitas do Mês
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_receitas|currency_br }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-arrow-up fa-2x text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-left-danger shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                            Despesas do Mês
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_despesas|currency_br }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-arrow-down fa-2x text-danger"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Saldo Total
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ saldo|currency_br }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-wallet fa-2x text-info"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Seção de Resumo Financeiro -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3 bg-info text-white">
+                <h6 class="m-0 font-weight-bold">Resumo Financeiro</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="text-xs font-weight-bold text-muted text-uppercase mb-1">
+                                Saldo Anterior
+                            </div>
+                            <div class="text-xs text-muted mb-1">
+                                {% if mes_atual == 'Janeiro' %}Dezembro {{ ano_atual|add:-1 }}{% elif mes_atual == 'Fevereiro' %}Janeiro {{ ano_atual }}{% elif mes_atual == 'Março' %}Fevereiro {{ ano_atual }}{% elif mes_atual == 'Abril' %}Março {{ ano_atual }}{% elif mes_atual == 'Maio' %}Abril {{ ano_atual }}{% elif mes_atual == 'Junho' %}Maio {{ ano_atual }}{% elif mes_atual == 'Julho' %}Junho {{ ano_atual }}{% elif mes_atual == 'Agosto' %}Julho {{ ano_atual }}{% elif mes_atual == 'Setembro' %}Agosto {{ ano_atual }}{% elif mes_atual == 'Outubro' %}Setembro {{ ano_atual }}{% elif mes_atual == 'Novembro' %}Outubro {{ ano_atual }}{% elif mes_atual == 'Dezembro' %}Novembro {{ ano_atual }}{% endif %}
+                            </div>
+                            <div class="h6 mb-0 font-weight-bold {% if saldo_anterior >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ saldo_anterior|currency_br }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="text-xs font-weight-bold text-muted text-uppercase mb-1">
+                                Movimentação do Mês
+                            </div>
+                            <div class="text-xs text-muted mb-1">
+                                {{ mes_atual }} {{ ano_atual }}
+                            </div>
+                            <div class="h6 mb-0 font-weight-bold {% if movimentacao_mes >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {% if movimentacao_mes > 0 %}+{% endif %}{{ movimentacao_mes|currency_br }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <div class="text-xs font-weight-bold text-muted text-uppercase mb-1">
+                                Saldo Atual
+                            </div>
+                            <div class="h6 mb-0 font-weight-bold {% if saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ saldo|currency_br }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <a href="{% url 'fechamento_mensal' %}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-calendar-check"></i> Fechamento Mensal
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Seção de Transações e Gráficos -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card shadow mb-4" style="height: 450px;">
+            <div class="card-header py-3 bg-primary text-white">
+                <h6 class="m-0 font-weight-bold">Transações Recentes</h6>
+            </div>
+            <div class="card-body" style="height: calc(100% - 60px); overflow-y: auto;">
+                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                    <table class="table table-bordered table-sm" id="dataTable" width="100%" cellspacing="0">
+                        <thead class="thead-light" style="position: sticky; top: 0; z-index: 10;">
+                            <tr>
+                                <th>Data</th>
+                                <th>Descrição</th>
+                                <th>Categoria</th>
+                                <th>Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transacao in transacoes %}
+                            <tr>
+                                <td>{{ transacao.data|date:"d/m/Y" }}</td>
+                                <td>{{ transacao.descricao }}</td>
+                                <td>
+                                    <span class="badge badge-{% if transacao.tipo == 'receita' %}success{% else %}danger{% endif %}" style="color: white !important; background-color: {% if transacao.tipo == 'receita' %}#28a745{% else %}#dc3545{% endif %} !important;">
+                                        {{ transacao.categoria.nome|default:transacao.get_tipo_display }}
+                                    </span>
+                                </td>
+                                <td class="{% if transacao.tipo == 'receita' %}text-success{% else %}text-danger{% endif %}">
+                                    {{ transacao.valor|currency_br }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center">Nenhuma transação registrada</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{% url 'transacoes' %}" class="btn btn-primary btn-sm">Ver Todas</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow mb-4" style="height: 450px;">
+            <div class="card-header py-3 bg-primary text-white">
+                <h6 class="m-0 font-weight-bold">Despesas por Categoria</h6>
+            </div>
+            <div class="card-body d-flex align-items-center justify-content-center" style="height: calc(100% - 60px);">
+                <div class="chart-pie" style="width: 100%; height: 100%; max-height: 350px;">
+                    <canvas id="graficoCategoria"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Seção de Contas -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 bg-primary text-white d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold">Minhas Contas</h6>
+                <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#criarContaModal">
+                    <i class="fas fa-plus"></i> Nova Conta
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for conta in contas %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card border-left-primary h-100 card-uniform">
+                            {% if conta.is_conta_bancaria and conta.banco %}
+                            <div class="card-header d-flex align-items-center py-2">
+                                {% if conta.banco.imagem %}
+                                <img src="{% static conta.banco.imagem %}" alt="{{ conta.banco.nome }}" style="height: 25px; margin-right: 8px;">
+                                {% endif %}
+                                <small class="text-muted">{{ conta.banco.codigo }} - {{ conta.banco.nome }}</small>
+                            </div>
+                            {% else %}
+                            <div class="card-header d-flex align-items-center py-2" style="height: 49px;">
+                                <small class="text-muted">Conta Simples</small>
+                            </div>
+                            {% endif %}
+                            <div class="card-body d-flex flex-column">
+                                <div class="flex-grow-1">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                        {{ conta.nome }}
+                                        {% if conta.is_conta_bancaria %}
+                                            - Conta Bancária
+                                        {% else %}
+                                            - Conta Simples
+                                        {% endif %}
+                                    </div>
+                                    <div class="h6 mb-0 font-weight-bold {% if conta.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                        {{ conta.saldo|currency_br }}
+                                    </div>
+                                    {% if conta.is_conta_bancaria %}
+                                        {% if conta.agencia and conta.numero_conta %}
+                                        <div class="text-xs text-muted mt-1">
+                                            Ag: {{ conta.agencia }} | Conta: {{ conta.numero_conta }}
+                                        </div>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                                <div class="d-flex justify-content-end mt-auto">
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'editar_conta' conta.id %}" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'excluir_conta_segura' conta.id %}" class="btn btn-outline-danger btn-sm" title="Excluir conta com segurança">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <p class="text-center text-muted">Nenhuma conta cadastrada</p>
+                        <div class="text-center">
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#criarContaModal">
+                                <i class="fas fa-plus"></i> Criar Primeira Conta
+                            </button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Criar Nova Conta -->
+<div class="modal fade" id="criarContaModal" tabindex="-1" role="dialog" aria-labelledby="criarContaModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="criarContaModalLabel">
+                    <i class="fas fa-plus"></i> Nova Conta
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" action="{% url 'contas' %}">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="nome">Nome da Conta</label>
+                        <input type="text" class="form-control" id="nome" name="nome" required placeholder="Ex: Conta Corrente, Poupança...">
+                    </div>
+                    <div class="form-group">
+                        <label for="tipo">Tipo da Conta</label>
+                        <select class="form-control" id="tipo" name="tipo" required>
+                            <option value="">Selecione o tipo</option>
+                            <option value="corrente">Conta Corrente</option>
+                            <option value="poupanca">Poupança</option>
+                            <option value="investimento">Investimento</option>
+                            <option value="carteira">Carteira</option>
+                            <option value="outro">Outro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="saldo_inicial">Saldo Inicial</label>
+                        <input type="number" step="0.01" class="form-control" id="saldo_inicial" name="saldo_inicial" value="0.00" placeholder="0,00">
+                        <small class="form-text text-muted">Informe o saldo atual da conta</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Criar Conta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- <script src="{% static 'financas/js/money-mask.js' %}"></script> -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Dados para o gráfico de categorias
+        let dadosCategorias = {{ dados_categorias|safe }};
+        
+        // Ordenar do maior para menor valor
+        dadosCategorias.sort((a, b) => b.valor - a.valor);
+        
+        if (dadosCategorias.length > 0) {
+            const labels = dadosCategorias.map(item => item.nome);
+            const valores = dadosCategorias.map(item => item.valor);
+            const cores = dadosCategorias.map(item => item.cor);
+            
+            // Função para formatar valores em reais
+            function formatarReal(valor) {
+                return new Intl.NumberFormat('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL'
+                }).format(valor);
+            }
+            
+            const ctx = document.getElementById('graficoCategoria').getContext('2d');
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: valores,
+                        backgroundColor: cores,
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const label = context.label || '';
+                                    const value = formatarReal(context.parsed);
+                                    return label + ': ' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
