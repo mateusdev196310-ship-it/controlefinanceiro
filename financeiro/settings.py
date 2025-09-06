@@ -28,7 +28,7 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-q3i&$4h-)gesath0@4oo6
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost,financeiro-app-fso4.onrender.com').split(',')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost,financeiro-app-16p4.onrender.com').split(',')
 
 
 # Application definition
@@ -47,14 +47,11 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'financas.middleware.LoggingContextMiddleware',  # Adicionar contexto de logging
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    # 'financas.middleware.TenantMiddleware',  # Temporariamente desabilitado para resolver erro 404
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'financas.middleware.DatabaseLoggingMiddleware',  # Monitorar queries de banco
 ]
 
 ROOT_URLCONF = 'financeiro.urls'
@@ -160,15 +157,15 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Configuração de Logging Estruturado
-from financas.logging_config import LOGGING_CONFIG as LOGGING
+# Configuração de Logging Estruturado - DESABILITADO PARA RESOLVER ERRO 400
+# from financas.logging_config import LOGGING_CONFIG as LOGGING
 
-# Configurações de Performance para Logging
-LOGGING_PERFORMANCE = {
-    'SLOW_QUERY_THRESHOLD_MS': 100,  # Log queries que demoram mais que 100ms
-    'HIGH_QUERY_COUNT_THRESHOLD': 10,  # Log requests com mais de 10 queries
-    'LOG_ALL_QUERIES': False,  # Set True para log de todas as queries (desenvolvimento)
-}
+# Configurações de Performance para Logging - DESABILITADO
+# LOGGING_PERFORMANCE = {
+#     'SLOW_QUERY_THRESHOLD_MS': 100,  # Log queries que demoram mais que 100ms
+#     'HIGH_QUERY_COUNT_THRESHOLD': 10,  # Log requests com mais de 10 queries
+#     'LOG_ALL_QUERIES': False,  # Set True para log de todas as queries (desenvolvimento)
+# }
 
 # Configurações de Autenticação
 # Configuração do modelo de usuário customizado
