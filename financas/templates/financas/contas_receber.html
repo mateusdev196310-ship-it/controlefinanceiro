@@ -1,0 +1,310 @@
+{% extends 'financas/base.html' %}
+{% load static %}
+{% load currency_filters %}
+
+{% block page_title %}Contas a Receber{% endblock %}
+
+{% block content %}
+    <style>
+        .card {
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        .progress {
+            height: 8px;
+        }
+        
+        /* Responsividade para dispositivos móveis */
+        @media (max-width: 576px) {
+            .card-body {
+                padding: 1rem 0.75rem;
+            }
+            .h6 {
+                font-size: 0.9rem;
+            }
+            .small {
+                font-size: 0.8rem;
+            }
+            .text-center.p-2 {
+                padding: 0.5rem !important;
+            }
+            .row.g-2 {
+                --bs-gutter-x: 0.5rem;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            .card-body {
+                padding: 0.75rem 0.5rem;
+            }
+            .h6 {
+                font-size: 0.85rem;
+            }
+            .small {
+                font-size: 0.75rem;
+            }
+            .text-center.p-2 {
+                padding: 0.4rem !important;
+            }
+        }
+    </style>
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-money-bill-wave me-2"></i>
+            Contas a Receber
+        </h2>
+        <a href="{% url 'adicionar_conta_receber' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i>
+            Nova Conta a Receber
+        </a>
+    </div>
+    
+    {% if contas %}
+        <div class="row">
+            {% for conta in contas %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0 text-truncate" title="{{ conta.descricao }}">
+                                {{ conta.descricao }}
+                            </h6>
+                            <span class="badge" style="background-color: {{ conta.categoria.cor }}; color: white;">
+                                {{ conta.categoria.nome }}
+                            </span>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3 g-2">
+                                <div class="col-6">
+                                    <div class="text-center p-2 bg-light rounded">
+                                        <small class="text-muted d-block mb-1">Valor Total</small>
+                                        <div class="h6 text-success mb-0 fw-bold">
+                                            {{ conta.valor_total|currency_br }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center p-2 bg-light rounded">
+                                        <small class="text-muted d-block mb-1">Por Parcela</small>
+                                        <div class="h6 text-primary mb-0 fw-bold">
+                                            {{ conta.valor_parcela|currency_br }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3 g-2">
+                                <div class="col-6">
+                                    <div class="text-center p-2 bg-success bg-opacity-10 rounded">
+                                        <small class="text-muted d-block mb-1">Recebido</small>
+                                        <div class="small text-success fw-bold">
+                                            {{ conta.get_valor_recebido|currency_br }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center p-2 bg-danger bg-opacity-10 rounded">
+                                        <small class="text-muted d-block mb-1">Pendente</small>
+                                        <div class="small text-danger fw-bold">
+                                            {{ conta.get_valor_pendente|currency_br }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3 g-2">
+                                <div class="col-6">
+                                    <div class="text-center p-2 bg-primary bg-opacity-10 rounded">
+                                        <small class="text-muted d-block mb-1">Parcelas</small>
+                                        <div class="fw-bold text-primary">{{ conta.total_parcelas }}x</div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center p-2 bg-info bg-opacity-10 rounded">
+                                        <small class="text-muted d-block mb-1">Intervalo</small>
+                                        <div class="fw-bold text-info">{{ conta.get_intervalo_display }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if conta.responsavel %}
+                                <div class="mb-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-user me-1"></i>
+                                        Cliente: {{ conta.responsavel }}
+                                    </small>
+                                </div>
+                            {% endif %}
+                            
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    Primeiro vencimento: {{ conta.data_primeiro_vencimento|date:"d/m/Y" }}
+                                </small>
+                            </div>
+                            
+                            <div class="mb-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-clock me-1"></i>
+                                    Criada em: {{ conta.criada_em|date:"d/m/Y H:i" }}
+                                </small>
+                            </div>
+                            
+
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'detalhes_conta_receber' conta.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i>
+                                    Detalhes
+                                </a>
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+                                        <i class="fas fa-ellipsis-v"></i>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'detalhes_conta_receber' conta.id %}">
+                                                <i class="fas fa-list me-1"></i>
+                                                Ver Parcelas
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="#" onclick="confirmarExclusao('{{ conta.id }}', '{{ conta.descricao }}')">
+                                                <i class="fas fa-trash me-1"></i>
+                                                Excluir
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Resumo das contas a receber -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-chart-bar me-1"></i>
+                            Resumo das Contas a Receber
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center g-3">
+                            <div class="col-6 col-md-4 col-lg-2">
+                                <div class="border-end border-bottom border-md-bottom-0 pb-3 pb-md-0">
+                                    <h4 class="text-primary mb-1">{{ total_contas }}</h4>
+                                    <small class="text-muted d-block">Total de Contas</small>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4 col-lg-2">
+                                <div class="border-end border-bottom border-md-bottom-0 pb-3 pb-md-0">
+                                    <h4 class="text-info mb-1">
+                                        {{ total_parcelas }}
+                                    </h4>
+                                    <small class="text-muted d-block">Total de Parcelas</small>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4 col-lg-2">
+                                <div class="border-end border-bottom border-md-bottom-0 pb-3 pb-md-0">
+                                    <h4 class="text-success mb-1">
+                                        {{ valor_total_geral|currency_br }}
+                                    </h4>
+                                    <small class="text-muted d-block">Valor Total</small>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4 col-lg-2">
+                                <div class="border-end border-bottom border-md-bottom-0 pb-3 pb-md-0">
+                                    <h4 class="text-warning mb-1">{{ contas_ativas }}</h4>
+                                    <small class="text-muted d-block">Ativas</small>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4 col-lg-2">
+                                <div class="border-end border-bottom border-md-bottom-0 pb-3 pb-md-0">
+                                    <h4 class="text-success mb-1">
+                                        {{ valor_total_recebido|currency_br }}
+                                    </h4>
+                                    <small class="text-muted d-block">Valor Recebido</small>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4 col-lg-2">
+                                <div class="pb-3 pb-md-0">
+                                    <h4 class="text-danger mb-1">
+                                        {{ valor_total_pendente|currency_br }}
+                                    </h4>
+                                    <small class="text-muted d-block">Saldo a Receber</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-money-bill-wave fa-4x text-muted"></i>
+            </div>
+            <h4 class="text-muted mb-3">Nenhuma conta a receber encontrada</h4>
+            <p class="text-muted mb-4">
+                As contas a receber permitem controlar valores que você tem a receber,<br>
+                facilitando o controle financeiro e o acompanhamento de recebimentos.
+            </p>
+            <a href="{% url 'adicionar_conta_receber' %}" class="btn btn-primary btn-lg">
+                <i class="fas fa-plus me-2"></i>
+                Criar Primeira Conta a Receber
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Modal de confirmação de exclusão -->
+<div class="modal fade" id="modalExclusao" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                    Confirmar Exclusão
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Tem certeza que deseja excluir a conta a receber <strong id="contaDescricao"></strong>?</p>
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Esta ação não pode ser desfeita.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>
+                    Cancelar
+                </button>
+                <a href="#" id="btnConfirmarExclusao" class="btn btn-danger">
+                    <i class="fas fa-trash me-1"></i>
+                    Excluir
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function confirmarExclusao(contaId, contaDescricao) {
+        document.getElementById('contaDescricao').textContent = contaDescricao;
+        document.getElementById('btnConfirmarExclusao').href = `/financas/excluir-conta-receber/${contaId}/`;
+        
+        const modal = new bootstrap.Modal(document.getElementById('modalExclusao'));
+        modal.show();
+    }
+</script>
+{% endblock %}

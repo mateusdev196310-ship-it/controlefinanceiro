@@ -3,13 +3,10 @@ from django.contrib.auth import views as auth_views
 from django.shortcuts import redirect
 from . import views
 
-def redirect_to_dashboard(request):
-    return redirect('dashboard')
-
 urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('dashboard/', views.dashboard, name='dashboard'),
-    path('', redirect_to_dashboard, name='home'),
+    path('', views.home_view, name='home'),
     path('transacoes/', views.transacoes, name='transacoes'),
     path('transacoes/criar/', views.adicionar_transacao, name='transacao_create'),
     path('transacoes/editar/<int:transacao_id>/', views.adicionar_transacao, name='transacao_update'),

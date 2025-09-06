@@ -133,14 +133,11 @@ class FinancasLoggerAdapter(logging.LoggerAdapter):
         )
 
 
-# Configuração de logging estruturado
+# Configuração de logging estruturado - Versão simplificada para produção
 LOGGING_CONFIG = {
     'version': 1,
     'disable_existing_loggers': False,
     'formatters': {
-        'structured': {
-            '()': 'financas.logging_config.StructuredFormatter',
-        },
         'simple': {
             'format': '{asctime} {levelname} {name} {message}',
             'style': '{',
@@ -152,41 +149,25 @@ LOGGING_CONFIG = {
             'formatter': 'simple',
             'level': 'INFO',
         },
-        'file_structured': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'logs/financas_structured.log',
-            'maxBytes': 10 * 1024 * 1024,  # 10MB
-            'backupCount': 5,
-            'formatter': 'structured',
-            'level': 'INFO',
-        },
-        'file_errors': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'logs/financas_errors.log',
-            'maxBytes': 10 * 1024 * 1024,  # 10MB
-            'backupCount': 5,
-            'formatter': 'structured',
-            'level': 'ERROR',
-        },
     },
     'loggers': {
         'financas': {
-            'handlers': ['console', 'file_structured', 'file_errors'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
         'financas.services': {
-            'handlers': ['file_structured', 'file_errors'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
         'financas.models': {
-            'handlers': ['file_structured', 'file_errors'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
         'financas.views': {
-            'handlers': ['console', 'file_structured', 'file_errors'],
+            'handlers': ['console'],
             'level': 'INFO',
             'propagate': False,
         },
@@ -213,13 +194,6 @@ def setup_logging():
     Configura o sistema de logging estruturado.
     Deve ser chamado na inicialização da aplicação.
     """
-    import os
-    
-    # Criar diretório de logs se não existir
-    log_dir = 'logs'
-    if not os.path.exists(log_dir):
-        os.makedirs(log_dir)
-    
     # Aplicar configuração
     logging.config.dictConfig(LOGGING_CONFIG)
     
