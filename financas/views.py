@@ -2746,3 +2746,13 @@ def gerar_parcelas_despesa(request, despesa_id):
         messages.error(request, f"Erro ao gerar parcelas: {str(e)}")
     
     return redirect('detalhes_despesa_parcelada', despesa_id=despesa_id)
+
+
+def home_view(request):
+    """
+    View para a página inicial que redireciona baseado no status de autenticação.
+    """
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+    else:
+        return redirect('login')
