@@ -1,0 +1,508 @@
+{% extends 'financas/base.html' %}
+{% load static %}
+{% load currency_filters %}
+
+{% block page_title %}Detalhes da Conta a Receber{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Responsividade melhorada - Layout limpo e proporcional */
+    @media (max-width: 768px) {
+        /* Container principal */
+        .container-fluid {
+            padding: 0.5rem !important;
+        }
+        
+        /* Cards principais */
+        .card {
+            margin-bottom: 1rem !important;
+            border-radius: 0.5rem !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+        }
+        
+        .card-body {
+            padding: 1rem !important;
+        }
+        
+        /* Título da conta - sempre visível */
+        .card-body .text-center h4.text-primary,
+        .text-center h4.text-primary,
+        h4.text-primary {
+            font-size: 1.1rem !important;
+            font-weight: 600 !important;
+            color: #0d6efd !important;
+            margin-bottom: 1rem !important;
+            padding: 0.75rem !important;
+            background: linear-gradient(135deg, #f8f9ff 0%, #e3f2fd 100%) !important;
+            border-radius: 0.5rem !important;
+            border-left: 4px solid #0d6efd !important;
+            text-align: center !important;
+            line-height: 1.4 !important;
+        }
+        
+        /* Cards de valores (Valor Total e Por Parcela) - lado a lado */
+        .card-body .row.mb-3.g-2 {
+            display: flex !important;
+            flex-wrap: nowrap !important;
+        }
+        
+        .card-body .row.mb-3.g-2 .col-6 {
+            flex: 1 !important;
+            min-width: 0 !important;
+        }
+        
+        /* Valores principais - destaque */
+        .card-body h3.text-success,
+        .card-body h4.text-primary {
+            font-size: 1.2rem !important;
+            font-weight: 700 !important;
+            margin-bottom: 0.25rem !important;
+        }
+        
+        /* Labels dos valores */
+        .card-body small.text-muted {
+            font-size: 0.75rem !important;
+            font-weight: 500 !important;
+        }
+        
+        /* Informações adicionais */
+        .info-item {
+            margin-bottom: 0.75rem !important;
+            padding: 0.75rem !important;
+            border-radius: 0.375rem !important;
+            background-color: #f8f9fa !important;
+        }
+        
+        .info-item .info-label {
+            display: flex !important;
+            align-items: center !important;
+            margin-bottom: 0.25rem !important;
+            font-size: 0.8rem !important;
+            color: #6c757d !important;
+        }
+        
+        .info-item .info-value {
+            font-size: 0.9rem !important;
+            font-weight: 600 !important;
+            color: #212529 !important;
+        }
+        
+        /* Tabela de parcelas - responsiva */
+        .table-responsive {
+            border-radius: 0.5rem !important;
+            overflow: hidden !important;
+        }
+        
+        .table {
+            margin-bottom: 0 !important;
+            font-size: 0.85rem !important;
+        }
+        
+        .table th {
+            font-size: 0.75rem !important;
+            font-weight: 600 !important;
+            padding: 0.75rem 0.5rem !important;
+            background-color: #f8f9fa !important;
+            border-bottom: 2px solid #dee2e6 !important;
+        }
+        
+        .table td {
+            padding: 0.75rem 0.5rem !important;
+            vertical-align: middle !important;
+        }
+        
+        /* Botões de ação na tabela */
+        .btn-sm {
+            font-size: 0.75rem !important;
+            padding: 0.25rem 0.5rem !important;
+            border-radius: 0.25rem !important;
+        }
+        
+        /* Status badges */
+        .badge {
+            font-size: 0.7rem !important;
+            padding: 0.35rem 0.65rem !important;
+        }
+        
+        /* Resumo estatístico */
+        .row.text-center .col-md-3,
+        .row.text-center .col-md-4 {
+            margin-bottom: 1rem !important;
+            padding: 0.75rem !important;
+        }
+        
+        .row.text-center h4,
+        .row.text-center h5 {
+            font-size: 1.1rem !important;
+            margin-bottom: 0.25rem !important;
+        }
+        
+        .row.text-center small {
+            font-size: 0.75rem !important;
+        }
+        
+        /* Ícones */
+        .fa-2x {
+            font-size: 1.5rem !important;
+        }
+        
+        /* Alertas */
+        .alert {
+            padding: 0.75rem !important;
+            margin-bottom: 1rem !important;
+            font-size: 0.85rem !important;
+            border-radius: 0.375rem !important;
+        }
+        
+        /* Botões principais */
+        .btn {
+            font-size: 0.85rem !important;
+            padding: 0.5rem 1rem !important;
+        }
+        
+        .btn-lg {
+            font-size: 0.9rem !important;
+            padding: 0.75rem 1.25rem !important;
+        }
+    }
+    
+    /* Estilos para desktop */
+    @media (min-width: 769px) {
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .info-item .info-label {
+            margin-bottom: 0;
+        }
+    }
+    
+    /* Cores personalizadas para status */
+    .status-recebido {
+        background-color: #d1edff !important;
+        color: #0c63e4 !important;
+    }
+    
+    .status-pendente {
+        background-color: #fff3cd !important;
+        color: #856404 !important;
+    }
+    
+    .status-vencido {
+        background-color: #f8d7da !important;
+        color: #721c24 !important;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>
+            <i class="fas fa-money-bill-wave me-2"></i>
+            Detalhes da Conta a Receber
+        </h2>
+        <a href="{% url 'contas_receber' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>
+            Voltar
+        </a>
+    </div>
+    
+    <div class="row">
+        <!-- Informações da Conta -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Informações da Conta
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-3">
+                        <h4 class="text-primary mb-3">{{ conta.descricao }}</h4>
+                        <span class="badge" style="background-color: {{ conta.categoria.cor }}; color: white; font-size: 0.9rem; padding: 0.5rem 1rem;">
+                            {{ conta.categoria.nome }}
+                        </span>
+                    </div>
+                    
+                    <div class="row mb-3 g-2">
+                        <div class="col-6 text-center">
+                            <div class="border-end p-2">
+                                <h3 class="text-success mb-1">{{ conta.valor_total|currency_br }}</h3>
+                                <small class="text-muted d-block">Valor Total</small>
+                            </div>
+                        </div>
+                        <div class="col-6 text-center">
+                            <div class="p-2">
+                                <h4 class="text-primary mb-1">{{ conta.valor_parcela|currency_br }}</h4>
+                                <small class="text-muted d-block">Por Parcela</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <hr>
+                    
+                    <div class="mb-3">
+                        <div class="info-item mb-2 p-2 rounded bg-light">
+                            <div class="info-label">
+                                <i class="fas fa-list-ol me-1"></i>
+                                <span class="text-muted">Parcelas:</span>
+                            </div>
+                            <div class="info-value">
+                                <span class="fw-bold text-primary">{{ conta.numero_parcelas }}x</span>
+                            </div>
+                        </div>
+                        
+                        <div class="info-item mb-2 p-2 rounded bg-light">
+                            <div class="info-label">
+                                <i class="fas fa-clock me-1"></i>
+                                <span class="text-muted">Intervalo:</span>
+                            </div>
+                            <div class="info-value">
+                                <span class="fw-bold text-info">{{ conta.get_intervalo_tipo_display }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="info-item mb-2 p-2 rounded bg-light">
+                            <div class="info-label">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                <span class="text-muted">Primeiro vencimento:</span>
+                            </div>
+                            <div class="info-value">
+                                <span class="fw-bold text-dark">{{ conta.data_primeiro_vencimento|date:"d/m/Y" }}</span>
+                            </div>
+                        </div>
+                        
+                        {% if conta.responsavel %}
+                            <div class="info-item mb-2 p-2 rounded bg-light">
+                                <div class="info-label">
+                                    <i class="fas fa-user me-1"></i>
+                                    <span class="text-muted">Cliente:</span>
+                                </div>
+                                <div class="info-value">
+                                    <span class="fw-bold text-dark">{{ conta.responsavel }}</span>
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="info-item p-2 rounded bg-light">
+                            <div class="info-label">
+                                <i class="fas fa-calendar-plus me-1"></i>
+                                <span class="text-muted">Criada em:</span>
+                            </div>
+                            <div class="info-value">
+                                <span class="fw-bold text-secondary">{{ conta.criada_em|date:"d/m/Y H:i" }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if parcelas_geradas %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-1"></i>
+                            Parcelas geradas com sucesso
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Lista de Parcelas -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-list me-2"></i>
+                            Parcelas Geradas
+                        </h5>
+                        {% if parcelas %}
+                            <span class="badge bg-light text-dark">
+                                {{ parcelas.count }} parcela{{ parcelas.count|pluralize }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    {% if parcelas %}
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="text-center">
+                                            <i class="fas fa-hashtag me-1"></i>
+                                            Parcela
+                                        </th>
+                                        <th>
+                                            <i class="fas fa-calendar me-1"></i>
+                                            Vencimento
+                                        </th>
+                                        <th class="text-end">
+                                            <i class="fas fa-dollar-sign me-1"></i>
+                                            Valor
+                                        </th>
+                                        <th class="text-center">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            Status
+                                        </th>
+                                        <th class="text-center">
+                                            <i class="fas fa-cogs me-1"></i>
+                                            Ações
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for parcela in parcelas %}
+                                        <tr class="{% if parcela.pago %}table-success{% elif parcela.data < today %}table-danger{% endif %}">
+                                            <td class="text-center fw-bold">
+                                                {{ parcela.numero_parcela }}/{{ conta.total_parcelas }}
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if parcela.data < today and not parcela.pago %}
+                                                        <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                                                    {% elif parcela.pago %}
+                                                        <i class="fas fa-check-circle text-success me-2"></i>
+                                                    {% else %}
+                                                        <i class="fas fa-clock text-warning me-2"></i>
+                                                    {% endif %}
+                                                    {{ parcela.data|date:"d/m/Y" }}
+                                                    {% if parcela.data < today and not parcela.pago %}
+                                                        <small class="text-danger ms-1">(Vencida)</small>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                            <td class="text-end fw-bold">
+                                                {{ parcela.valor|currency_br }}
+                                            </td>
+                                            <td class="text-center">
+                                                {% if parcela.pago %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-check me-1"></i>
+                                                        Recebido
+                                                    </span>
+                                                    {% if parcela.data_pagamento %}
+                                                        <small class="d-block text-muted mt-1">
+                                                            {{ parcela.data_pagamento|date:"d/m/Y" }}
+                                                        </small>
+                                                    {% endif %}
+                                                {% elif parcela.data < today %}
+                                                    <span class="badge bg-danger">
+                                                        <i class="fas fa-exclamation-triangle me-1"></i>
+                                                        Vencida
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-warning">
+                                                        <i class="fas fa-clock me-1"></i>
+                                                        Pendente
+                                                    </span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-center">
+                                                {% if parcela.pago %}
+                                                    <a href="{% url 'marcar_parcela_nao_recebida' parcela.id %}" 
+                                                       class="btn btn-sm btn-outline-warning" 
+                                                       title="Reabrir recebimento">
+                                                        <i class="fas fa-undo"></i>
+                                                    </a>
+                                                {% else %}
+                                                    <a href="{% url 'marcar_parcela_recebida' parcela.id %}" 
+                                                       class="btn btn-sm btn-success" 
+                                                       title="Marcar como recebido">
+                                                        <i class="fas fa-check"></i>
+                                                    </a>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-list fa-3x text-muted mb-3"></i>
+                            <h5 class="text-muted">Nenhuma parcela encontrada</h5>
+                            <p class="text-muted">As parcelas serão geradas automaticamente quando a conta for criada.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Resumo Estatístico -->
+    {% if parcelas %}
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-pie me-2"></i>
+                            Resumo Estatístico
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-md-3">
+                                <div class="border-end">
+                                    <h4 class="text-success mb-1">{{ conta.valor_total|currency_br }}</h4>
+                                    <small class="text-muted">Valor Total</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="border-end">
+                                    <h4 class="text-info mb-1">{{ conta.valor_parcela|currency_br }}</h4>
+                                    <small class="text-muted">Valor por Parcela</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <h4 class="text-warning mb-1">{{ conta.get_intervalo_display }}</h4>
+                                <small class="text-muted">Intervalo</small>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-3">
+                        
+                        <div class="row text-center">
+                            <div class="col-md-4">
+                                <div class="text-success">
+                                    <i class="fas fa-check-circle fa-2x mb-2"></i>
+                                    <h5>{{ conta.get_parcelas_recebidas.count }}</h5>
+                                    <small>Recebidas</small>
+                                    <div class="mt-1">
+                                        <small class="text-muted">{{ conta.get_valor_recebido|currency_br }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-warning">
+                                    <i class="fas fa-clock fa-2x mb-2"></i>
+                                    <h5>{{ conta.get_parcelas_pendentes.count }}</h5>
+                                    <small>Pendentes</small>
+                                    <div class="mt-1">
+                                        <small class="text-muted">{{ conta.get_valor_pendente|currency_br }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="text-danger">
+                                    <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+                                    <h5>{{ conta.get_parcelas_vencidas.count }}</h5>
+                                    <small>Vencidas</small>
+                                    <div class="mt-1">
+                                        <small class="text-muted">{{ conta.get_valor_vencido|currency_br }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
