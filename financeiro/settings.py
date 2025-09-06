@@ -26,9 +26,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-q3i&$4h-)gesath0@4oo660!y3=or_8ss_w0j%#l211^5tz+7-')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = config('DEBUG', default=True, cast=bool)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost,controlefinanceiro-aio3.onrender.com').split(',')
+
+# Configurações de segurança para produção
+CSRF_TRUSTED_ORIGINS = [
+    'https://controlefinanceiro-aio3.onrender.com',
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+]
+
+# Configurações adicionais de segurança
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 
 # Application definition
