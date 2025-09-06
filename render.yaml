@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: financeiro-app
+    env: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn financeiro.wsgi:application --bind 0.0.0.0:$PORT"
+    plan: free
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ALLOWED_HOSTS
+        value: "controlefinanceiro-aio3.onrender.com,127.0.0.1,localhost"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: financeiro-db
+          property: connectionString
+
+  - type: pserv
+    name: financeiro-db
+    env: postgresql
+    plan: free
+    databaseName: financeiro_db
+    user: financeiro_user
