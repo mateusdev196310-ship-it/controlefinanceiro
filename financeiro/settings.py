@@ -51,7 +51,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'financas.middleware.TenantMiddleware',  # Isolamento de dados por tenant
+    # 'financas.middleware.TenantMiddleware',  # Temporariamente desabilitado para resolver erro 404
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'financas.middleware.DatabaseLoggingMiddleware',  # Monitorar queries de banco
