@@ -6,6 +6,13 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
+from django.core.mail import send_mail
+from django.utils.crypto import get_random_string
+from django.conf import settings
+from django.core.exceptions import ValidationError
+from django.contrib.auth import login
+from django.contrib.auth.forms import UserCreationForm
+from django.urls import reverse
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import json
@@ -14,6 +21,7 @@ import calendar
 import time
 import logging
 import re
+import uuid
 
 from .models import Categoria, Transacao, Meta, DespesaParcelada, Conta, FechamentoMensal, ConfiguracaoFechamento, CustomUser
 from .services import ContaService, TransacaoService
@@ -77,23 +85,32 @@ def dashboard(request):
         # Movimentação do mês atual
         movimentacao_mes = total_receitas - total_despesas
     
-        # Dados para gráficos de categorias
+        # Dados para gráficos de categorias (apenas do mês atual)
         categorias = Categoria.objects.all()
         dados_categorias = []
         
+        logger.info(f"Processando {categorias.count()} categorias para o gráfico")
+        
         for categoria in categorias:
-            # Excluir despesas parceladas dos gráficos de categorias
+            # Excluir despesas parceladas dos gráficos de categorias e filtrar por mês atual
             total_categoria = Transacao.objects.filter(
                 categoria=categoria, 
                 tipo__in=TipoTransacao.get_expense_types(),
-                despesa_parcelada__isnull=True  # Excluir despesas parceladas
+                despesa_parcelada__isnull=True,  # Excluir despesas parceladas
+                data__month=hoje.month,
+                data__year=hoje.year
             ).aggregate(total=Sum('valor'))
+            
+            logger.info(f"Categoria {categoria.nome}: {total_categoria['total']} (mês {hoje.month}/{hoje.year})")
+            
             if total_categoria['total']:
                 dados_categorias.append({
                     'nome': categoria.nome,
                     'valor': float(total_categoria['total']),
                     'cor': categoria.cor
                 })
+        
+        logger.info(f"Total de categorias com dados: {len(dados_categorias)}")
         
         # Metas
         metas = Meta.objects.all()
@@ -122,6 +139,10 @@ def dashboard(request):
             'eh_mes_atual': True,  # Sempre True no dashboard pois mostra mês atual
         }
         
+        # Serializar dados_categorias para JSON
+        dados_categorias_json = json.dumps(dados_categorias)
+        logger.info(f"Dados categorias JSON: {dados_categorias_json}")
+        
         context = {
             'transacoes': transacoes,
             'total_receitas': total_receitas,
@@ -132,6 +153,7 @@ def dashboard(request):
             'mes_atual': mes_atual,
             'ano_atual': ano_atual,
             'dados_categorias': dados_categorias,
+            'dados_categorias_json': dados_categorias_json,
             'metas': metas,
             'contas': contas,
             'resumos_contas': resumos_contas,
@@ -286,7 +308,7 @@ def adicionar_transacao(request, transacao_id=None):
             except (ValueError, TypeError) as e:
                 logger.error(f"Erro ao converter valor '{valor_str}': {e}")
                 messages.error(request, "Valor inválido. Use apenas números.")
-                return redirect('adicionar_transacao')
+                return redirect('transacao_create')
             
             # Converter data se fornecida
             data = None
@@ -295,7 +317,7 @@ def adicionar_transacao(request, transacao_id=None):
                     data = datetime.strptime(data_str, '%Y-%m-%d').date()
                 except ValueError:
                     messages.error(request, "Data inválida. Use o formato DD/MM/AAAA.")
-                    return redirect('adicionar_transacao')
+                    return redirect('transacao_create')
             
             # Verificar se categoria existe
             categoria = get_object_or_404(Categoria.objects, id=categoria_id)
@@ -370,7 +392,7 @@ def adicionar_transacao(request, transacao_id=None):
         except Exception as e:
             logger.error(f"Erro inesperado ao criar transação: {str(e)}")
             messages.error(request, "Erro interno. Tente novamente.")
-            return redirect('adicionar_transacao')
+            return redirect('transacao_create')
     
     # GET request - mostrar formulário
     try:
@@ -730,6 +752,70 @@ def detalhes_despesa_parcelada(request, despesa_id):
         'parcelas_recem_geradas': parcelas_recem_geradas,
     }
     return render(request, 'financas/detalhes_despesa_parcelada.html', context)
+
+@login_required
+def criar_conta(request):
+    """View para criar uma nova conta"""
+    if request.method == 'POST':
+        nome = request.POST.get('nome')
+        saldo_inicial = request.POST.get('saldo_inicial') or request.POST.get('saldo', 0)
+        tipo = request.POST.get('tipo', 'simples')
+        
+        # Validar se nome foi fornecido
+        if not nome or not nome.strip():
+            messages.error(request, 'Nome da conta é obrigatório.')
+            from .models import Banco
+            bancos = Banco.objects.all().order_by('codigo')
+            return render(request, 'financas/criar_conta.html', {'bancos': bancos})
+        
+        # Criar a conta com saldo zero
+        conta = Conta.objects.create(
+            nome=nome.strip(),
+            saldo=0,
+            tipo=tipo
+        )
+        
+        # Se for conta bancária, adicionar informações do banco
+        if tipo == 'bancaria':
+            banco_id = request.POST.get('banco')
+            if banco_id:
+                from .models import Banco
+                conta.banco_id = banco_id
+            conta.cnpj = request.POST.get('cnpj', '')
+            conta.numero_conta = request.POST.get('numero_conta', '')
+            conta.agencia = request.POST.get('agencia', '')
+            conta.save()
+        
+        # Se há saldo inicial, criar uma transação de receita no mês atual
+        if saldo_inicial and float(saldo_inicial) > 0:
+            # Buscar ou criar categoria "Saldo Inicial"
+            categoria_saldo, created = Categoria.objects.get_or_create(
+                nome='Saldo Inicial',
+                defaults={'cor': '#28a745'}  # Verde
+            )
+            
+            # Criar transação de receita
+            Transacao.objects.create(
+                descricao=f'Saldo inicial da conta {nome}',
+                valor=saldo_inicial,
+                categoria=categoria_saldo,
+                tipo='receita',
+                data=timezone.now().date(),
+                responsavel='Sistema',
+                conta=conta
+            )
+            
+            # Atualizar saldo da conta
+            conta.saldo = saldo_inicial
+            conta.save()
+        
+        messages.success(request, 'Conta criada com sucesso!')
+        return redirect('contas')
+    
+    # GET request - mostrar formulário
+    from .models import Banco
+    bancos = Banco.objects.all().order_by('codigo')
+    return render(request, 'financas/criar_conta.html', {'bancos': bancos})
 
 @login_required
 def contas(request):
@@ -1161,18 +1247,26 @@ def relatorios(request):
                 if data_atual > data_fim:
                     break
     
+    # Serializar dados para JSON (necessário para os gráficos)
+    dados_categorias_json = json.dumps(dados_categorias)
+    dados_evolucao_json = json.dumps(dados_evolucao)
+    
     context = {
         'total_receitas': total_receitas,
         'total_despesas': total_despesas,
         'saldo': saldo,
         'dados_categorias': dados_categorias,
         'dados_evolucao': dados_evolucao,
+        'dados_categorias_json': dados_categorias_json,
+        'dados_evolucao_json': dados_evolucao_json,
         'periodo': periodo,
         'tipo_exibicao': tipo_exibicao,
         'data_inicio': data_inicio_param or '',
         'data_fim': data_fim_param or '',
     }
     return render(request, 'financas/relatorios.html', context)
+
+
 
 def fechamento_mensal(request):
     from datetime import datetime
@@ -1642,14 +1736,104 @@ def test_filter(request):
     """View de teste para filtros"""
     return render(request, 'financas/test_filter.html')
 
+@login_required
+def compartilhar_whatsapp(request):
+    """
+    Gera resumo financeiro formatado para compartilhamento via WhatsApp.
+    """
+    try:
+        # Data atual para cálculos
+        hoje = timezone.now().date()
+        
+        # Obter resumo financeiro consolidado
+        total_receitas = Decimal('0.00')
+        total_despesas = Decimal('0.00')
+        saldo_atual_total = Decimal('0.00')
+        
+        contas = Conta.objects.all()
+        
+        for conta in contas:
+            try:
+                resumo = ContaService.obter_resumo_financeiro(
+                    conta.id, 
+                    mes=hoje.month, 
+                    ano=hoje.year
+                )
+                total_receitas += resumo['receitas']
+                total_despesas += resumo['despesas']
+                saldo_atual_total += resumo['saldo_atual']
+            except Exception as e:
+                logger.error(f"Erro ao obter resumo da conta {conta.id}: {e}")
+                continue
+        
+        # Obter transações recentes (últimos 7 dias)
+        data_inicio = hoje - timedelta(days=7)
+        transacoes_recentes = Transacao.objects.select_related('categoria', 'conta').filter(
+            data__gte=data_inicio,
+            despesa_parcelada__isnull=True
+        ).order_by('-data', '-id')[:10]
+        
+        # Obter maiores despesas do mês
+        primeiro_dia_mes = hoje.replace(day=1)
+        maiores_despesas = Transacao.objects.select_related('categoria').filter(
+            data__gte=primeiro_dia_mes,
+            tipo='despesa',
+            despesa_parcelada__isnull=True
+        ).order_by('-valor')[:5]
+        
+        # Formatear texto para WhatsApp
+        # Nomes dos meses em português
+        meses_portugues = [
+            'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+        ]
+        mes_nome = meses_portugues[hoje.month - 1]
+        texto_whatsapp = f"💰 *RESUMO FINANCEIRO - {mes_nome.upper()}/{hoje.year}*\n\n"
+        texto_whatsapp += f"📊 *SALDO GERAL*\n"
+        texto_whatsapp += f"💚 Receitas: R$ {total_receitas:,.2f}\n"
+        texto_whatsapp += f"❌ Despesas: R$ {total_despesas:,.2f}\n"
+        texto_whatsapp += f"💰 Saldo Atual: R$ {saldo_atual_total:,.2f}\n\n"
+        
+        if transacoes_recentes:
+            texto_whatsapp += f"📋 *TRANSAÇÕES RECENTES (últimos 7 dias)*\n"
+            for transacao in transacoes_recentes:
+                emoji = "💚" if transacao.tipo == 'receita' else "❌"
+                texto_whatsapp += f"{emoji} {transacao.descricao}: R$ {transacao.valor:,.2f}\n"
+            texto_whatsapp += "\n"
+        
+        if maiores_despesas:
+            texto_whatsapp += f"🔥 *MAIORES DESPESAS DO MÊS*\n"
+            for despesa in maiores_despesas:
+                categoria = despesa.categoria.nome if despesa.categoria else 'Sem categoria'
+                texto_whatsapp += f"• {despesa.descricao} ({categoria}): R$ {despesa.valor:,.2f}\n"
+            texto_whatsapp += "\n"
+        
+        texto_whatsapp += f"📱 Gerado pelo Sistema Financeiro em {hoje.strftime('%d/%m/%Y')}"
+        
+        # Retornar JSON com o texto formatado
+        return JsonResponse({
+            'success': True,
+            'texto': texto_whatsapp,
+            'resumo': {
+                'receitas': float(total_receitas),
+                'despesas': float(total_despesas),
+                'saldo': float(saldo_atual_total),
+                'transacoes_recentes': len(transacoes_recentes),
+                'maiores_despesas': len(maiores_despesas)
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Erro ao gerar resumo para WhatsApp: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Erro ao gerar resumo financeiro'
+        }, status=500)
+
 
 # Views para Reset de Senha
-from django.core.mail import send_mail
-from django.utils.crypto import get_random_string
-from django.conf import settings
 from .models import PasswordResetToken
 from .validators import django_validar_senha_forte
-from django.core.exceptions import ValidationError
 
 def esqueci_senha_view(request):
     """
@@ -1769,13 +1953,7 @@ def reset_senha_view(request, token):
         return redirect('esqueci_senha')
 
 # Views de Registro de Usuário
-from django.contrib.auth import login
-from django.contrib.auth.forms import UserCreationForm
-from django.core.mail import send_mail
-from django.urls import reverse
-from django.utils.crypto import get_random_string
-from django.conf import settings
-import uuid
+# Imports já movidos para o topo do arquivo
 
 def registro_view(request):
     """
@@ -2550,3 +2728,21 @@ def excluir_transacao(request, transacao_id):
         messages.error(request, "Erro ao excluir a transação. Tente novamente.")
         return redirect('transacoes')
     return render(request, 'financas/test_filter.html')
+
+@login_required
+@require_http_methods(["POST"])
+def gerar_parcelas_despesa(request, despesa_id):
+    """Gera as parcelas de uma despesa parcelada."""
+    try:
+        despesa = get_object_or_404(DespesaParcelada.objects, id=despesa_id)
+        
+        if despesa.parcelas_geradas:
+            messages.warning(request, "As parcelas desta despesa já foram geradas.")
+        else:
+            despesa.gerar_parcelas()
+            messages.success(request, f"Parcelas geradas com sucesso! {despesa.numero_parcelas} parcelas foram criadas.")
+        
+    except Exception as e:
+        messages.error(request, f"Erro ao gerar parcelas: {str(e)}")
+    
+    return redirect('detalhes_despesa_parcelada', despesa_id=despesa_id)

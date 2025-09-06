@@ -270,7 +270,7 @@ document.getElementById('buscar-cnpj').addEventListener('click', function() {
         })
         .catch(error => {
             console.error('Erro:', error);
-            alert('Erro ao buscar dados do CNPJ');
+        alert('Erro ao buscar dados do CNPJ');
         })
         .finally(() => {
             loading.style.display = 'none';

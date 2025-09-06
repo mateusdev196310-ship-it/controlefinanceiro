@@ -144,7 +144,7 @@
                                                                 <input type="hidden" name="ano" value="{{ ano_fechamento }}">
                                                                 {% if pode_fechar_mes %}
                                                                     <button type="submit" class="btn btn-primary btn-sm" 
-                                                                            onclick="return confirm('Confirma o fechamento da conta {{ item.conta.nome }} para {{ mes_fechamento }}/{{ ano_fechamento }}?')">
+                                                                            onclick="return confirm('Tem certeza que deseja fechar a conta {{ item.conta.nome }} para {{ mes_fechamento }}/{{ ano_fechamento }}?')">
                                                                         <i class="fas fa-lock"></i> Fechar
                                                                     </button>
                                                                 {% else %}
@@ -471,7 +471,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (btnFechamentoAutomatico) {
         btnFechamentoAutomatico.addEventListener('click', function() {
-            if (confirm('Confirma o fechamento automático de todas as contas abertas?')) {
+            if (confirm('Tem certeza que deseja realizar o fechamento automático de todas as contas abertas?')) {
                 // Desabilitar botão e mostrar loading
                 btnFechamentoAutomatico.disabled = true;
                 btnFechamentoAutomatico.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processando...';

@@ -4,7 +4,7 @@
 {% block content %}
 <div class="container">
     <h2>Teste de Formulário</h2>
-    <form method="post" action="{% url 'adicionar_transacao' %}">
+    <form method="post" action="{% url 'transacao_create' %}">
         {% csrf_token %}
         <div class="mb-3">
             <label for="descricao" class="form-label">Descrição</label>

@@ -57,6 +57,7 @@ class ErrorMessages:
     DATA_FUTURA = 'A data não pode ser no futuro.'
     DESCRICAO_VAZIA = 'A descrição não pode estar vazia.'
     SALDO_INSUFICIENTE = 'Saldo insuficiente para esta operação.'
+    CATEGORIA_NOME_OBRIGATORIO = 'Nome da categoria é obrigatório.'
     
 # Mensagens de sucesso padronizadas
 class SuccessMessages:

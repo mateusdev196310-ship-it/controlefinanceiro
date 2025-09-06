@@ -204,3 +204,32 @@ node_modules/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Arquivos de teste e debug
+test_*.py
+test_*.html
+debug_*.py
+relatorio_teste_*.json
+*.md
+
+# Scripts de desenvolvimento
+check_*.py
+fix_*.py
+create_*.py
+setup_*.py
+reset_*.py
+clean*.py
+verify_*.py
+analyze_*.py
+limpar_*.py
+criar_*.py
+corrigir_*.py
+testar_*.py
+teste_*.py
+migrate_*.py
+recreate_*.py
+sync_*.py
+final_*.py
+complete_*.py
+install_*.ps1
+exemplo_*.sql

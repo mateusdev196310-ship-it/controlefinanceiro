@@ -1,75 +1,85 @@
 #!/usr/bin/env python
-"""Script para testar criação de transação diretamente."""
-
 import os
 import sys
 import django
-from decimal import Decimal
-from datetime import date
 
 # Configurar Django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'financeiro.settings')
 django.setup()
 
-from financas.models import Conta, Categoria, Transacao
-from financas.services import TransacaoService
+from django.test import Client
+from financas.models import Categoria, Conta
+from django.contrib.auth.models import User
+from financas.models import CustomUser
 
 def test_criar_transacao():
-    """Testa a criação de uma transação."""
-    print("=== Teste de Criação de Transação ===")
-    
-    # Verificar se existem contas e categorias
-    contas = Conta.objects.all()
-    categorias = Categoria.objects.all()
-    
-    print(f"Contas disponíveis: {contas.count()}")
-    for conta in contas:
-        print(f"  - ID: {conta.id}, Nome: {conta.nome}, Saldo: {conta.saldo}")
-    
-    print(f"Categorias disponíveis: {categorias.count()}")
-    for categoria in categorias:
-        print(f"  - ID: {categoria.id}, Nome: {categoria.nome}")
-    
-    if not contas.exists():
-        print("Criando conta de teste...")
-        conta = Conta.objects.create(nome="Conta Teste", saldo=Decimal('1000.00'))
-    else:
-        conta = contas.first()
-    
-    if not categorias.exists():
-        print("Criando categoria de teste...")
-        categoria = Categoria.objects.create(nome="Categoria Teste")
-    else:
-        categoria = categorias.first()
-    
-    print(f"\nUsando conta: {conta.nome} (ID: {conta.id})")
-    print(f"Usando categoria: {categoria.nome} (ID: {categoria.id})")
-    
     try:
-        print("\nCriando transação via service...")
-        transacao = TransacaoService.criar_transacao(
-            conta_id=conta.id,
-            descricao="Teste de Transação",
-            valor=Decimal('100.00'),
-            tipo="receita",
-            data=date.today(),
-            categoria=categoria.nome
-        )
+        # Criar cliente de teste
+        client = Client()
         
-        print(f"✅ Transação criada com sucesso!")
-        print(f"   ID: {transacao.id}")
-        print(f"   Descrição: {transacao.descricao}")
-        print(f"   Valor: {transacao.valor}")
-        print(f"   Tipo: {transacao.tipo}")
-        print(f"   Data: {transacao.data}")
-        print(f"   Categoria: {transacao.categoria}")
+        # Fazer login
+        login_success = client.login(username='admin', password='admin123')
+        print(f"Login success: {login_success}")
         
-        # Verificar se foi salva no banco
-        transacao_db = Transacao.objects.get(id=transacao.id)
-        print(f"✅ Transação confirmada no banco de dados: {transacao_db.descricao}")
+        if not login_success:
+            print("Falha no login")
+            return
         
+        # Obter categoria e conta
+        categoria = Categoria.objects.first()
+        conta = Conta.objects.first()
+        
+        print(f"Categoria: {categoria}")
+        print(f"Conta: {conta}")
+        
+        if not categoria or not conta:
+            print("Categoria ou conta não encontrada")
+            return
+        
+        # Obter página de criação
+        response = client.get('/transacoes/criar/')
+        print(f"GET Status: {response.status_code}")
+        
+        if response.status_code != 200:
+            print(f"Erro ao acessar página: {response.content.decode()[:500]}")
+            return
+        
+        # Extrair CSRF token do HTML
+        content = response.content.decode()
+        import re
+        csrf_match = re.search(r'name="csrfmiddlewaretoken" value="([^"]+)"', content)
+        if csrf_match:
+            csrf_token = csrf_match.group(1)
+        else:
+            print("CSRF token não encontrado")
+            return
+        
+        print(f"CSRF token: {csrf_token[:20]}...")
+        
+        # Dados da transação
+        data = {
+            'descricao': 'Transação de Teste',
+            'valor': '50.00',
+            'tipo': 'despesa',
+            'categoria': categoria.id,
+            'conta': conta.id,
+            'data': '2025-01-05',
+            'csrfmiddlewaretoken': csrf_token
+        }
+        
+        print(f"Dados: {data}")
+        
+        # Fazer POST
+        response = client.post('/transacoes/criar/', data)
+        print(f"POST Status: {response.status_code}")
+        
+        if response.status_code != 200 and response.status_code != 302:
+            print(f"Erro na criação: {response.content.decode()[:1000]}")
+        else:
+            print("Transação criada com sucesso!")
+            
     except Exception as e:
-        print(f"❌ Erro ao criar transação: {e}")
+        print(f"Exceção: {str(e)}")
         import traceback
         traceback.print_exc()
 

@@ -25,85 +25,184 @@
     flex: 1;
 }
 
-@media (max-width: 768px) {
-    /* Cards de resumo - 2 por linha em mobile com melhor espaçamento */
+.card-hover {
+    transition: transform 0.2s;
+}
+.card-hover:hover {
+    transform: translateY(-2px);
+}
+.text-success { color: #28a745 !important; }
+.text-danger { color: #dc3545 !important; }
+.text-warning { color: #ffc107 !important; }
+.text-info { color: #17a2b8 !important; }
+
+/* Responsividade para dispositivos extra pequenos (até 576px) */
+@media (max-width: 575.98px) {
+    /* Cards de resumo - 1 por linha em telas muito pequenas */
     .col-md-4 {
-        flex: 0 0 calc(50% - 8px);
-        max-width: calc(50% - 8px);
-        margin-bottom: 18px;
-        padding: 0 4px;
+        flex: 0 0 100%;
+        max-width: 100%;
+        margin-bottom: 15px;
+        padding: 0 5px;
     }
     
     /* Cards principais ocupam largura total */
     .col-md-6 {
-        flex: 0 0 calc(100% - 8px);
-        max-width: calc(100% - 8px);
+        flex: 0 0 100%;
+        max-width: 100%;
         margin-bottom: 20px;
-        padding: 0 4px;
+        padding: 0 5px;
     }
     
+    /* Resumo financeiro - 2 colunas por linha */
+    .col-md-3 {
+        flex: 0 0 50%;
+        max-width: 50%;
+        margin-bottom: 15px;
+        padding: 0 5px;
+    }
+    
+    /* Contas - 1 por linha */
+    .col-md-4:has(.card-uniform) {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    
+    /* Título menor */
+    h2 {
+        font-size: 1.3rem;
+        margin-bottom: 10px;
+    }
+    
+    /* Cards mais compactos */
+    .card-body {
+        padding: 12px;
+    }
+    
+    /* Textos menores */
+    .text-xs {
+        font-size: 10px !important;
+    }
+    
+    .h5.mb-0.font-weight-bold {
+        font-size: 1rem !important;
+    }
+    
+    .h6.mb-0.font-weight-bold {
+        font-size: 0.9rem !important;
+    }
+    
+    /* Ícones menores */
+    .fa-2x {
+        font-size: 1.2em !important;
+    }
+    
+    /* Botões mais compactos */
+    .btn {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+    
+    .btn-sm {
+        padding: 4px 6px;
+        font-size: 11px;
+    }
+    
+    /* Tabela responsiva */
+    .table-responsive {
+        font-size: 12px;
+    }
+    
+    .table th, .table td {
+        padding: 0.5rem 0.3rem;
+    }
+}
+
+/* Responsividade para dispositivos pequenos (576px a 767.98px) */
+@media (min-width: 576px) and (max-width: 767.98px) {
+    /* Cards de resumo - 2 por linha */
+    .col-md-4 {
+        flex: 0 0 calc(50% - 10px);
+        max-width: calc(50% - 10px);
+        margin-bottom: 15px;
+        padding: 0 5px;
+    }
+    
+    /* Cards principais ocupam largura total */
+    .col-md-6 {
+        flex: 0 0 100%;
+        max-width: 100%;
+        margin-bottom: 20px;
+        padding: 0 5px;
+    }
+    
+    /* Resumo financeiro - 2 colunas por linha */
+    .col-md-3 {
+        flex: 0 0 50%;
+        max-width: 50%;
+        margin-bottom: 15px;
+        padding: 0 5px;
+    }
+    
+    /* Contas - 2 por linha */
+    .col-md-4:has(.card-uniform) {
+        flex: 0 0 calc(50% - 10px);
+        max-width: calc(50% - 10px);
+    }
+}
+
+/* Removido - preservando layout desktop original */
+
+/* Responsividade apenas para mobile */
+@media (max-width: 767.98px) {
     /* Cards mais compactos */
     .card.border-left-success,
     .card.border-left-info,
     .card.border-left-danger,
     .card.border-left-primary {
         margin-bottom: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-left-width: 4px !important;
     }
     
     .card-body {
         padding: 15px;
     }
     
-    /* Textos do resumo financeiro - corrigir visibilidade */
+    /* Textos do resumo financeiro */
     .text-xs {
-        font-size: 12px !important;
+        font-size: 11px !important;
         color: #6c757d !important;
+        line-height: 1.3;
     }
     
     .h5.mb-0.font-weight-bold {
-        font-size: 1.2rem !important;
-        color: #495057 !important;
-    }
-    
-    .h4.mb-0.font-weight-bold {
-        font-size: 1.3rem !important;
+        font-size: 1.1rem !important;
         color: #495057 !important;
     }
     
     .h6.mb-0.font-weight-bold {
-        font-size: 1rem !important;
+        font-size: 0.95rem !important;
         color: #495057 !important;
     }
     
-    /* Ícones menores em mobile */
+    /* Ícones proporcionais */
     .fa-2x {
-        font-size: 1.3em !important;
+        font-size: 1.4em !important;
     }
     
-    .fa-3x {
-        font-size: 1.6em !important;
-    }
-    
-    /* Título da página menor */
+    /* Título da página */
     h2 {
-        font-size: 1.5rem;
+        font-size: 1.6rem;
         margin-bottom: 15px;
-    }
-    
-    /* Ajustar espaçamento geral */
-    .row.no-gutters {
-        margin: 0;
-    }
-    
-    .col.mr-2 {
-        margin-right: 8px !important;
     }
     
     /* Cards uniformes mais compactos */
     .card-uniform .card-header {
-        min-height: 40px;
-        padding: 10px 15px;
-        font-size: 14px;
+        min-height: 45px;
+        padding: 12px 15px;
+        font-size: 13px;
     }
     
     .card-uniform .card-body {
@@ -117,51 +216,620 @@
     
     .card-header h6 {
         color: white !important;
-        font-size: 16px !important;
-    }
-    
-    /* Colunas do resumo financeiro - melhor distribuição */
-    .col-md-3 {
-        flex: 0 0 calc(50% - 8px);
-        max-width: calc(50% - 8px);
-        margin-bottom: 18px;
-        padding: 0 4px;
-    }
-    
-    /* Cards de resumo financeiro mais compactos */
-    .card.border-left-success,
-    .card.border-left-info,
-    .card.border-left-danger,
-    .card.border-left-primary {
-        border-radius: 10px;
-        box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15);
-        border-left-width: 5px !important;
-    }
-    
-    .card-body {
-        padding: 18px 16px;
+        font-size: 15px !important;
     }
     
     /* Melhorar alinhamento dos ícones */
     .row.no-gutters {
         align-items: center;
+        margin: 0;
+    }
+    
+    .col.mr-2 {
+        margin-right: 8px !important;
     }
     
     .col-auto {
-        padding-left: 12px;
+        padding-left: 10px;
     }
     
-    /* Botões menores */
+    /* Botões responsivos */
     .btn {
         padding: 8px 12px;
-        font-size: 14px;
+        font-size: 13px;
     }
     
     .btn-sm {
         padding: 6px 10px;
         font-size: 12px;
     }
-}
+    
+    /* Tabela responsiva */
+    .table-responsive {
+        max-height: 250px;
+    }
+    
+    .table {
+        font-size: 13px;
+    }
+    
+    .table th, .table td {
+        padding: 0.6rem 0.4rem;
+    }
+    
+    /* Gráfico responsivo */
+    .chart-pie {
+        max-height: 280px !important;
+    }
+    
+    /* Modal responsivo */
+    .modal-dialog {
+        margin: 10px;
+        max-width: calc(100% - 20px);
+    }
+    
+    /* Badges menores */
+     .badge {
+         font-size: 11px;
+         padding: 4px 8px;
+     }
+     
+     /* Resumo financeiro - melhor organização em mobile */
+     .card.shadow .card-body .row.text-center {
+         margin: 0;
+     }
+     
+     .card.shadow .card-body .row.text-center > div {
+         padding: 10px 5px;
+         border-bottom: 1px solid #e9ecef;
+     }
+     
+     .card.shadow .card-body .row.text-center > div:last-child {
+         border-bottom: none;
+     }
+     
+     /* Botões do resumo financeiro mais responsivos */
+     .d-flex.flex-column.flex-sm-row {
+         gap: 8px;
+     }
+     
+     /* Botões de fechamento e compartilhar - tamanhos consistentes */
+     .btn-fechamento-compartilhar {
+         min-width: 120px;
+         padding: 8px 12px;
+         font-size: 13px;
+     }
+     
+     /* Cards de resumo com melhor espaçamento */
+     .card.border-left-success .card-body,
+     .card.border-left-danger .card-body,
+     .card.border-left-info .card-body {
+         padding: 16px 14px;
+     }
+     
+     /* Melhor alinhamento dos valores */
+     .row.no-gutters .col {
+         display: flex;
+         flex-direction: column;
+         justify-content: center;
+     }
+ }
+ 
+ /* CSS adicional para melhorar a responsividade geral */
+ @media (max-width: 1199.98px) {
+     /* Para telas grandes mas não extra grandes */
+     .card-uniform {
+         min-height: 260px;
+     }
+     
+     .table-responsive {
+         max-height: 320px;
+     }
+ }
+ 
+ /* Melhorias para telas muito grandes */
+  @media (min-width: 1400px) {
+      /* Removido max-width para permitir layout desktop completo */
+      
+      .card-uniform {
+           min-height: 300px;
+       }
+   }
+   
+   /* Estilos específicos para botões de fechamento e compartilhar em desktop */
+   @media (min-width: 768px) {
+       .btn-fechamento-desktop,
+       .btn-compartilhar-desktop {
+           width: 160px !important;
+           min-width: 160px !important;
+           max-width: 160px !important;
+           padding: 8px 12px !important;
+           font-size: 13px !important;
+           font-weight: 500 !important;
+           text-align: center !important;
+           display: inline-flex !important;
+           align-items: center !important;
+           justify-content: center !important;
+       }
+   }
+  
+  /* Otimizações específicas para seção de transações e gráfico */
+  .card-transacoes {
+      height: 450px;
+  }
+  
+  .card-grafico {
+      height: 450px;
+  }
+  
+  .card-body-transacoes {
+      height: calc(100% - 60px);
+      overflow-y: auto;
+      padding: 15px;
+  }
+  
+  .card-body-grafico {
+      height: calc(100% - 60px);
+      padding: 15px;
+  }
+  
+  .table-container {
+      max-height: 300px;
+      overflow-y: auto;
+  }
+  
+  .table-header-sticky {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background-color: #f8f9fa;
+  }
+  
+  .chart-container {
+      width: 100%;
+      height: 100%;
+      max-height: 350px;
+  }
+  
+  /* Responsividade para transações e gráfico - apenas mobile */
+  @media (max-width: 767.98px) {
+      .card-transacoes,
+      .card-grafico {
+          height: auto;
+          min-height: 350px;
+      }
+      
+      .card-body-transacoes {
+          height: auto;
+          max-height: 400px;
+      }
+      
+      .card-body-grafico {
+          height: auto;
+          min-height: 300px;
+      }
+      
+      .table-container {
+          max-height: 280px;
+      }
+      
+      .chart-container {
+          max-height: 250px;
+          min-height: 200px;
+      }
+      
+      /* Colunas da tabela mais responsivas */
+      .col-data {
+          width: 20%;
+          min-width: 70px;
+      }
+      
+      .col-descricao {
+          width: 35%;
+          min-width: 100px;
+      }
+      
+      .col-categoria {
+          width: 25%;
+          min-width: 80px;
+      }
+      
+      .col-valor {
+          width: 20%;
+          min-width: 80px;
+          text-align: right;
+      }
+      
+      .badge-responsive {
+          font-size: 10px;
+          padding: 3px 6px;
+      }
+      
+      .btn-ver-todas {
+          width: 100%;
+          margin-top: 10px;
+      }
+  }
+  
+  @media (max-width: 575.98px) {
+      .card-transacoes,
+      .card-grafico {
+          min-height: 300px;
+      }
+      
+      .table-container {
+          max-height: 220px;
+      }
+      
+      .chart-container {
+          max-height: 200px;
+          min-height: 180px;
+      }
+      
+      /* Tabela ainda mais compacta */
+      .table-transacoes {
+          font-size: 11px;
+      }
+      
+      .table-transacoes th,
+      .table-transacoes td {
+          padding: 0.4rem 0.2rem;
+      }
+      
+      .col-data {
+          width: 18%;
+          min-width: 60px;
+      }
+      
+      .col-descricao {
+          width: 32%;
+          min-width: 80px;
+      }
+      
+      .col-categoria {
+          width: 28%;
+          min-width: 70px;
+      }
+      
+      .col-valor {
+          width: 22%;
+          min-width: 70px;
+      }
+      
+      .badge-responsive {
+          font-size: 9px;
+          padding: 2px 4px;
+      }
+  }
+  
+  /* Estilos específicos para seção de contas */
+  .card-contas {
+      border: none;
+      box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+  }
+  
+  .header-contas {
+      border-radius: 0.35rem 0.35rem 0 0;
+  }
+  
+  .btn-nova-conta {
+      font-size: 0.875rem;
+      padding: 0.375rem 0.75rem;
+  }
+  
+  .card-conta-item {
+      transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+      border-left: 0.25rem solid #4e73df !important;
+  }
+  
+  .card-conta-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0.25rem 2rem 0 rgba(58, 59, 69, 0.2);
+  }
+  
+  .logo-banco {
+      height: 25px;
+      margin-right: 8px;
+      object-fit: contain;
+  }
+  
+  .info-banco {
+      font-size: 0.75rem;
+      line-height: 1.2;
+  }
+  
+  .header-conta-bancaria,
+  .header-conta-simples {
+      min-height: 49px;
+      background-color: #f8f9fc;
+      border-bottom: 1px solid #e3e6f0;
+  }
+  
+  .nome-conta {
+      font-size: 0.75rem;
+      line-height: 1.2;
+  }
+  
+  .tipo-conta {
+      font-weight: normal;
+  }
+  
+  .saldo-conta {
+      font-size: 1.1rem;
+  }
+  
+  .detalhes-conta {
+      font-size: 0.7rem;
+  }
+  
+  .btn-group-conta {
+      gap: 0.25rem;
+  }
+  
+  .btn-editar,
+  .btn-excluir {
+      font-size: 0.75rem;
+      padding: 0.25rem 0.5rem;
+  }
+  
+  .empty-contas {
+      min-height: 200px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+  }
+  
+  .btn-criar-primeira {
+      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+  }
+  
+  /* Media queries para contas - apenas mobile */
+  
+  @media (max-width: 767.98px) {
+      .col-conta {
+          flex: 0 0 100%;
+          max-width: 100%;
+      }
+      
+      .header-contas {
+          text-align: center;
+          gap: 0.5rem;
+      }
+      
+      .card-body-contas {
+          padding: 1rem;
+      }
+      
+      .info-banco {
+          font-size: 0.7rem;
+      }
+      
+      .nome-conta {
+          font-size: 0.7rem;
+      }
+      
+      .saldo-conta {
+          font-size: 1rem;
+      }
+      
+      .detalhes-conta span {
+          display: block;
+          margin-bottom: 0.1rem;
+      }
+      
+      .acoes-conta {
+          justify-content: center;
+      }
+      
+      .btn-group-conta {
+          width: 100%;
+          display: flex;
+          justify-content: space-between;
+      }
+      
+      .btn-editar,
+      .btn-excluir {
+          flex: 1;
+          margin: 0 0.25rem;
+      }
+  }
+  
+  @media (max-width: 575.98px) {
+      .logo-banco {
+          height: 20px;
+          margin-right: 6px;
+      }
+      
+      .info-banco {
+          font-size: 0.65rem;
+      }
+      
+      .nome-conta {
+          font-size: 0.65rem;
+      }
+      
+      .saldo-conta {
+          font-size: 0.9rem;
+      }
+      
+      .detalhes-conta {
+          font-size: 0.6rem;
+      }
+      
+      .btn-editar,
+      .btn-excluir {
+          font-size: 0.7rem;
+          padding: 0.2rem 0.4rem;
+      }
+      
+      .btn-criar-primeira {
+          font-size: 0.8rem;
+          padding: 0.4rem 0.8rem;
+      }
+  }
+  
+  /* Breakpoints otimizados - preservando layout desktop */
+   
+   /* Telas muito grandes (1400px+) - preservando layout original */
+   @media (min-width: 1400px) {
+       /* Removido max-width para manter layout desktop original */
+   }
+  
+  /* Removido - preservando layout desktop original */
+   
+   /* Smartphones grandes (576px - 767px) */
+   @media (max-width: 767.98px) {
+       .col-md-4,
+       .col-md-6,
+       .col-md-3 {
+           flex: 0 0 100%;
+           max-width: 100%;
+           margin-bottom: 1rem;
+       }
+       
+       .card-body {
+           padding: 1rem;
+       }
+       
+       .btn {
+           font-size: 0.8rem;
+           padding: 0.5rem 1rem;
+       }
+       
+       .btn-sm {
+           font-size: 0.75rem;
+           padding: 0.375rem 0.75rem;
+       }
+       
+       .fa-2x {
+           font-size: 1.5em;
+       }
+   }
+  
+  /* Smartphones pequenos (até 575px) */
+  @media (max-width: 575.98px) {
+      .container-fluid {
+          padding-left: 0.75rem;
+          padding-right: 0.75rem;
+      }
+      
+      .row {
+          margin-left: -0.375rem;
+          margin-right: -0.375rem;
+      }
+      
+      .col,
+      .col-12,
+      .col-md-3,
+      .col-md-4,
+      .col-md-6 {
+          padding-left: 0.375rem;
+          padding-right: 0.375rem;
+      }
+      
+      .card {
+          margin-bottom: 0.75rem;
+          border-radius: 0.375rem;
+      }
+      
+      .card-body {
+          padding: 0.75rem;
+      }
+      
+      .card-header {
+          padding: 0.5rem 0.75rem;
+      }
+      
+      .text-xs {
+          font-size: 0.65rem;
+      }
+      
+      .h5 {
+          font-size: 0.9rem;
+      }
+      
+      .h6 {
+          font-size: 0.8rem;
+      }
+      
+      .btn {
+          font-size: 0.75rem;
+          padding: 0.4rem 0.8rem;
+      }
+      
+      .btn-sm {
+          font-size: 0.7rem;
+          padding: 0.3rem 0.6rem;
+      }
+      
+      .fa-2x {
+          font-size: 1.25em;
+      }
+      
+      /* Ajustes específicos para elementos pequenos */
+      .no-gutters {
+          margin-right: 0;
+          margin-left: 0;
+      }
+      
+      .no-gutters > .col,
+      .no-gutters > [class*="col-"] {
+          padding-right: 0.25rem;
+          padding-left: 0.25rem;
+      }
+  }
+  
+  /* Dispositivos muito pequenos (até 400px) */
+  @media (max-width: 400px) {
+      .container-fluid {
+          padding-left: 0.5rem;
+          padding-right: 0.5rem;
+      }
+      
+      .card-body {
+          padding: 0.5rem;
+      }
+      
+      .card-header {
+          padding: 0.4rem 0.5rem;
+      }
+      
+      .text-xs {
+          font-size: 0.6rem;
+      }
+      
+      .h5 {
+          font-size: 0.85rem;
+      }
+      
+      .h6 {
+          font-size: 0.75rem;
+      }
+      
+      .btn {
+          font-size: 0.7rem;
+          padding: 0.35rem 0.7rem;
+      }
+      
+      .btn-sm {
+          font-size: 0.65rem;
+          padding: 0.25rem 0.5rem;
+      }
+      
+      .fa-2x {
+          font-size: 1.1em;
+      }
+      
+      /* Texto ainda mais compacto */
+      .font-weight-bold {
+          font-weight: 600;
+      }
+      
+      .text-uppercase {
+          letter-spacing: 0.5px;
+      }
+  }
 </style>
 {% endblock %}
 
@@ -295,10 +963,17 @@
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="text-center">
-                            <a href="{% url 'fechamento_mensal' %}" class="btn btn-outline-primary btn-sm">
-                                <i class="fas fa-calendar-check"></i> Fechamento Mensal
+                        <div class="d-flex flex-column flex-sm-row justify-content-center justify-content-md-end align-items-center mb-3 gap-2">
+                            <a href="{% url 'fechamento_mensal' %}" class="btn btn-primary btn-sm btn-fechamento-desktop w-100 w-sm-auto">
+                                <i class="fas fa-calendar-check"></i> 
+                                <span class="d-none d-sm-inline">Fechamento Mensal</span>
+                                <span class="d-sm-none">Fechamento</span>
                             </a>
+                            <button id="btnCompartilharWhatsApp" class="btn btn-outline-success btn-sm btn-compartilhar-desktop w-100 w-sm-auto">
+                                <i class="fab fa-whatsapp"></i> 
+                                <span class="d-none d-sm-inline">Compartilhar</span>
+                                <span class="d-sm-none">WhatsApp</span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -310,56 +985,56 @@
 <!-- Seção de Transações e Gráficos -->
 <div class="row mb-4">
     <div class="col-md-6">
-        <div class="card shadow mb-4" style="height: 450px;">
+        <div class="card shadow mb-4 card-transacoes">
             <div class="card-header py-3 bg-primary text-white">
                 <h6 class="m-0 font-weight-bold">Transações Recentes</h6>
             </div>
-            <div class="card-body" style="height: calc(100% - 60px); overflow-y: auto;">
-                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
-                    <table class="table table-bordered table-sm" id="dataTable" width="100%" cellspacing="0">
-                        <thead class="thead-light" style="position: sticky; top: 0; z-index: 10;">
+            <div class="card-body card-body-transacoes">
+                <div class="table-responsive table-container">
+                    <table class="table table-bordered table-sm table-transacoes" id="dataTable" width="100%" cellspacing="0">
+                        <thead class="thead-light table-header-sticky">
                             <tr>
-                                <th>Data</th>
-                                <th>Descrição</th>
-                                <th>Categoria</th>
-                                <th>Valor</th>
+                                <th class="col-data">Data</th>
+                                <th class="col-descricao">Descrição</th>
+                                <th class="col-categoria">Categoria</th>
+                                <th class="col-valor">Valor</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for transacao in transacoes %}
                             <tr>
-                                <td>{{ transacao.data|date:"d/m/Y" }}</td>
-                                <td>{{ transacao.descricao }}</td>
-                                <td>
-                                    <span class="badge badge-{% if transacao.tipo == 'receita' %}success{% else %}danger{% endif %}" style="color: white !important; background-color: {% if transacao.tipo == 'receita' %}#28a745{% else %}#dc3545{% endif %} !important;">
-                                        {{ transacao.categoria.nome|default:transacao.get_tipo_display }}
+                                <td class="col-data">{{ transacao.data|date:"d/m/Y" }}</td>
+                                <td class="col-descricao">{{ transacao.descricao|truncatechars:25 }}</td>
+                                <td class="col-categoria">
+                                    <span class="badge badge-{% if transacao.tipo == 'receita' %}success{% else %}danger{% endif %} badge-responsive" style="color: white !important; background-color: {% if transacao.tipo == 'receita' %}#28a745{% else %}#dc3545{% endif %} !important;">
+                                        {{ transacao.categoria.nome|default:transacao.get_tipo_display|truncatechars:15 }}
                                     </span>
                                 </td>
-                                <td class="{% if transacao.tipo == 'receita' %}text-success{% else %}text-danger{% endif %}">
+                                <td class="col-valor {% if transacao.tipo == 'receita' %}text-success{% else %}text-danger{% endif %}">
                                     {{ transacao.valor|currency_br }}
                                 </td>
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="4" class="text-center">Nenhuma transação registrada</td>
+                                <td colspan="4" class="text-center text-muted">Nenhuma transação registrada</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
                 <div class="text-center mt-3">
-                    <a href="{% url 'transacoes' %}" class="btn btn-primary btn-sm">Ver Todas</a>
+                    <a href="{% url 'transacoes' %}" class="btn btn-primary btn-sm btn-ver-todas">Ver Todas</a>
                 </div>
             </div>
         </div>
     </div>
     <div class="col-md-6">
-        <div class="card shadow mb-4" style="height: 450px;">
+        <div class="card shadow mb-4 card-grafico">
             <div class="card-header py-3 bg-primary text-white">
                 <h6 class="m-0 font-weight-bold">Despesas por Categoria</h6>
             </div>
-            <div class="card-body d-flex align-items-center justify-content-center" style="height: calc(100% - 60px);">
-                <div class="chart-pie" style="width: 100%; height: 100%; max-height: 350px;">
+            <div class="card-body card-body-grafico d-flex align-items-center justify-content-center">
+                <div class="chart-pie chart-container">
                     <canvas id="graficoCategoria"></canvas>
                 </div>
             </div>
@@ -370,58 +1045,63 @@
 <!-- Seção de Contas -->
 <div class="row">
     <div class="col-12">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 bg-primary text-white d-flex justify-content-between align-items-center">
-                <h6 class="m-0 font-weight-bold">Minhas Contas</h6>
-                <button class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#criarContaModal">
-                    <i class="fas fa-plus"></i> Nova Conta
+        <div class="card shadow mb-4 card-contas">
+            <div class="card-header py-3 bg-primary text-white d-flex flex-column flex-sm-row justify-content-between align-items-center header-contas">
+                <h6 class="m-0 font-weight-bold mb-2 mb-sm-0">Minhas Contas</h6>
+                <button class="btn btn-light btn-sm btn-nova-conta" data-bs-toggle="modal" data-bs-target="#criarContaModal">
+                    <i class="fas fa-plus"></i> 
+                    <span class="d-none d-sm-inline">Nova Conta</span>
+                    <span class="d-sm-none">Nova</span>
                 </button>
             </div>
-            <div class="card-body">
-                <div class="row">
+            <div class="card-body card-body-contas">
+                <div class="row row-contas">
                     {% for conta in contas %}
-                    <div class="col-md-4 mb-3">
-                        <div class="card border-left-primary h-100 card-uniform">
+                    <div class="col-md-4 mb-3 col-conta">
+                        <div class="card border-left-primary h-100 card-uniform card-conta-item">
                             {% if conta.is_conta_bancaria and conta.banco %}
-                            <div class="card-header d-flex align-items-center py-2">
+                            <div class="card-header d-flex align-items-center py-2 header-conta-bancaria">
                                 {% if conta.banco.imagem %}
-                                <img src="{% static conta.banco.imagem %}" alt="{{ conta.banco.nome }}" style="height: 25px; margin-right: 8px;">
+                                <img src="{% static conta.banco.imagem %}" alt="{{ conta.banco.nome }}" class="logo-banco">
                                 {% endif %}
-                                <small class="text-muted">{{ conta.banco.codigo }} - {{ conta.banco.nome }}</small>
+                                <small class="text-muted info-banco">{{ conta.banco.codigo }} - {{ conta.banco.nome|truncatechars:20 }}</small>
                             </div>
                             {% else %}
-                            <div class="card-header d-flex align-items-center py-2" style="height: 49px;">
+                            <div class="card-header d-flex align-items-center py-2 header-conta-simples">
                                 <small class="text-muted">Conta Simples</small>
                             </div>
                             {% endif %}
-                            <div class="card-body d-flex flex-column">
-                                <div class="flex-grow-1">
-                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                        {{ conta.nome }}
+                            <div class="card-body d-flex flex-column body-conta">
+                                <div class="flex-grow-1 info-conta">
+                                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1 nome-conta">
+                                        {{ conta.nome|truncatechars:25 }}
                                         {% if conta.is_conta_bancaria %}
-                                            - Conta Bancária
+                                            <span class="tipo-conta">- Bancária</span>
                                         {% else %}
-                                            - Conta Simples
+                                            <span class="tipo-conta">- Simples</span>
                                         {% endif %}
                                     </div>
-                                    <div class="h6 mb-0 font-weight-bold {% if conta.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                    <div class="h6 mb-0 font-weight-bold saldo-conta {% if conta.saldo >= 0 %}text-success{% else %}text-danger{% endif %}">
                                         {{ conta.saldo|currency_br }}
                                     </div>
                                     {% if conta.is_conta_bancaria %}
                                         {% if conta.agencia and conta.numero_conta %}
-                                        <div class="text-xs text-muted mt-1">
-                                            Ag: {{ conta.agencia }} | Conta: {{ conta.numero_conta }}
+                                        <div class="text-xs text-muted mt-1 detalhes-conta">
+                                            <span class="d-block d-sm-inline">Ag: {{ conta.agencia }}</span>
+                                            <span class="d-block d-sm-inline">Conta: {{ conta.numero_conta }}</span>
                                         </div>
                                         {% endif %}
                                     {% endif %}
                                 </div>
-                                <div class="d-flex justify-content-end mt-auto">
-                                    <div class="btn-group" role="group">
-                                        <a href="{% url 'editar_conta' conta.id %}" class="btn btn-outline-primary btn-sm">
+                                <div class="d-flex justify-content-end mt-auto acoes-conta">
+                                    <div class="btn-group btn-group-conta" role="group">
+                                        <a href="{% url 'editar_conta' conta.id %}" class="btn btn-outline-primary btn-sm btn-editar" title="Editar conta">
                                             <i class="fas fa-edit"></i>
+                                            <span class="d-none d-lg-inline"> Editar</span>
                                         </a>
-                                        <a href="{% url 'excluir_conta_segura' conta.id %}" class="btn btn-outline-danger btn-sm" title="Excluir conta com segurança">
+                                        <a href="{% url 'excluir_conta_segura' conta.id %}" class="btn btn-outline-danger btn-sm btn-excluir" title="Excluir conta com segurança">
                                             <i class="fas fa-trash"></i>
+                                            <span class="d-none d-lg-inline"> Excluir</span>
                                         </a>
                                     </div>
                                 </div>
@@ -429,10 +1109,11 @@
                         </div>
                     </div>
                     {% empty %}
-                    <div class="col-12">
-                        <p class="text-center text-muted">Nenhuma conta cadastrada</p>
-                        <div class="text-center">
-                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#criarContaModal">
+                    <div class="col-12 empty-contas">
+                        <div class="text-center py-4">
+                            <i class="fas fa-wallet fa-3x text-muted mb-3"></i>
+                            <p class="text-center text-muted mb-3">Nenhuma conta cadastrada</p>
+                            <button class="btn btn-primary btn-criar-primeira" data-bs-toggle="modal" data-bs-target="#criarContaModal">
                                 <i class="fas fa-plus"></i> Criar Primeira Conta
                             </button>
                         </div>
@@ -496,7 +1177,16 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Dados para o gráfico de categorias
-        let dadosCategorias = {{ dados_categorias|safe }};
+        let dadosCategorias = {{ dados_categorias_json|safe }};
+        
+        console.log('Dados das categorias:', dadosCategorias);
+        
+        // Verificar se dadosCategorias é válido
+        if (!dadosCategorias || !Array.isArray(dadosCategorias)) {
+            console.error('Dados de categorias inválidos:', dadosCategorias);
+            document.querySelector('.chart-pie').innerHTML = '<p class="text-center text-muted">Erro ao carregar dados do gráfico</p>';
+            return;
+        }
         
         // Ordenar do maior para menor valor
         dadosCategorias.sort((a, b) => b.valor - a.valor);
@@ -514,8 +1204,22 @@
                 }).format(valor);
             }
             
-            const ctx = document.getElementById('graficoCategoria').getContext('2d');
-            new Chart(ctx, {
+            const canvasElement = document.getElementById('graficoCategoria');
+            
+            if (!canvasElement) {
+                console.error('Canvas element não encontrado!');
+                return;
+            }
+            
+            const ctx = canvasElement.getContext('2d');
+            
+            if (typeof Chart === 'undefined') {
+                console.error('Chart.js não foi carregado!');
+                return;
+            }
+            
+            // Criar o gráfico de rosca
+            const chart = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: labels,
@@ -549,7 +1253,54 @@
                     }
                 }
             });
+            
+            console.log('Gráfico de rosca criado com sucesso!');
+        } else {
+            document.querySelector('.chart-pie').innerHTML = '<p class="text-center text-muted mt-4">Nenhuma despesa registrada neste mês</p>';
         }
+        
+        // Funcionalidade de compartilhamento via WhatsApp
+        document.getElementById('btnCompartilharWhatsApp').addEventListener('click', function() {
+            // Mostrar loading no botão
+            const btn = this;
+            const textoOriginal = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
+            btn.disabled = true;
+            
+            // Fazer requisição para gerar o resumo
+            fetch('{% url "compartilhar_whatsapp" %}', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Codificar o texto para URL
+                    const textoWhatsApp = encodeURIComponent(data.texto);
+                    
+                    // Abrir WhatsApp com o texto pré-formatado
+                    const urlWhatsApp = `https://wa.me/?text=${textoWhatsApp}`;
+                    window.open(urlWhatsApp, '_blank');
+                    
+                    // Mostrar toast de sucesso
+                    showToast('Resumo financeiro gerado com sucesso!', 'success');
+                } else {
+                    showToast('Erro ao gerar resumo: ' + (data.error || 'Erro desconhecido'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                showToast('Erro ao gerar resumo financeiro', 'error');
+            })
+            .finally(() => {
+                // Restaurar botão
+                btn.innerHTML = textoOriginal;
+                btn.disabled = false;
+            });
+        });
     });
 </script>
 {% endblock %}

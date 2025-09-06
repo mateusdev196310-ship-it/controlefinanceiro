@@ -93,10 +93,10 @@
 function confirmarExclusao() {
     const confirmacao = document.getElementById('confirmacao_dupla').value;
     if (confirmacao !== 'CONFIRMO A EXCLUSAO') {
-        alert('Por favor, digite exatamente "CONFIRMO A EXCLUSAO" para confirmar.');
+        alert('Por favor, digite exatamente "CONFIRMO A EXCLUSÃO" para confirmar.');
         return false;
     }
-    return confirm('Tem certeza de que deseja excluir esta conta? Esta ação não pode ser desfeita.');
+    return confirm('Tem certeza de que deseja excluir esta conta? Esta ação é irreversível e não pode ser desfeita.');
 }
 </script>
 {% endblock %}

@@ -180,7 +180,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]');
         if (!csrfToken) {
             console.error('Token CSRF não encontrado no formulário da modal!');
-            alert('Erro: Token CSRF não encontrado. Recarregue a página.');
+            alert('Erro: Token de segurança não encontrado. Por favor, recarregue a página e tente novamente.');
             return;
         }
         
