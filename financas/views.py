@@ -23,7 +23,7 @@ import logging
 import re
 import uuid
 
-from .models import Categoria, Transacao, Meta, DespesaParcelada, Conta, FechamentoMensal, ConfiguracaoFechamento, CustomUser
+from .models import Categoria, Transacao, Meta, DespesaParcelada, Conta, FechamentoMensal, ConfiguracaoFechamento, CustomUser, ParcelaPlanejada
 from .services import ContaService, TransacaoService
 from .constants import TipoTransacao, SuccessMessages, ErrorMessages
 from .exceptions import ContaServiceError, TransacaoServiceError
@@ -2305,32 +2305,34 @@ def login_view(request):
 
 @login_required
 @require_http_methods(["POST"])
-def marcar_parcela_paga(request, transacao_id):
-    """Marca uma parcela como paga."""
+def marcar_parcela_paga(request, parcela_id):
+    """Marca uma parcela planejada como paga."""
     try:
-        transacao = get_object_or_404(Transacao.objects, id=transacao_id, despesa_parcelada__isnull=False)
-        transacao.marcar_como_pago()
-        messages.success(request, f"Parcela marcada como paga em {transacao.data_pagamento.strftime('%d/%m/%Y')}")
+        parcela = get_object_or_404(ParcelaPlanejada, id=parcela_id)
+        from datetime import date
+        data_pagamento = date.today()
+        transacao = parcela.marcar_como_pago(data_pagamento)
+        messages.success(request, f"Parcela marcada como paga em {data_pagamento.strftime('%d/%m/%Y')}")
         
     except Exception as e:
         messages.error(request, f"Erro ao marcar parcela como paga: {str(e)}")
     
-    return redirect('detalhes_despesa_parcelada', despesa_id=transacao.despesa_parcelada.id)
+    return redirect('detalhes_despesa_parcelada', despesa_id=parcela.despesa_parcelada.id)
 
 @require_http_methods(["POST"])
-def processar_pagamento_parcela(request, transacao_id):
-    """Processa o pagamento de uma parcela com validação de mês fechado."""
+def processar_pagamento_parcela(request, parcela_id):
+    """Processa o pagamento de uma parcela planejada com validação de mês fechado."""
     from .utils import verificar_mes_fechado
     from decimal import Decimal
     import json
     import logging
     
     logger = logging.getLogger(__name__)
-    logger.info(f"Processando pagamento da parcela {transacao_id}")
+    logger.info(f"Processando pagamento da parcela {parcela_id}")
     logger.info(f"Dados POST: {request.POST}")
     
     try:
-        transacao = get_object_or_404(Transacao.objects, id=transacao_id, despesa_parcelada__isnull=False)
+        parcela = get_object_or_404(ParcelaPlanejada, id=parcela_id)
         
         # Obter dados do formulário
         data_pagamento_str = request.POST.get('data_pagamento')
@@ -2338,7 +2340,7 @@ def processar_pagamento_parcela(request, transacao_id):
         
         if not data_pagamento_str or not valor_pago_str:
             messages.error(request, "Data de pagamento e valor são obrigatórios.")
-            return redirect('detalhes_despesa_parcelada', despesa_id=transacao.despesa_parcelada.id)
+            return redirect('detalhes_despesa_parcelada', despesa_id=parcela.despesa_parcelada.id)
         
         # Converter data
         from datetime import datetime
@@ -2348,13 +2350,13 @@ def processar_pagamento_parcela(request, transacao_id):
         from datetime import date
         if data_pagamento > date.today():
             messages.error(request, "Data de pagamento não pode ser no futuro.")
-            return redirect('detalhes_despesa_parcelada', despesa_id=transacao.despesa_parcelada.id)
+            return redirect('detalhes_despesa_parcelada', despesa_id=parcela.despesa_parcelada.id)
         
         # Verificar se o mês não está fechado
-        mes_fechado, mensagem_fechamento = verificar_mes_fechado(data_pagamento, transacao.conta)
+        mes_fechado, mensagem_fechamento = verificar_mes_fechado(data_pagamento, parcela.conta)
         if mes_fechado:
             messages.error(request, f"Não é possível registrar pagamento em {data_pagamento.strftime('%m/%Y')} pois o mês já foi fechado.")
-            return redirect('detalhes_despesa_parcelada', despesa_id=transacao.despesa_parcelada.id)
+            return redirect('detalhes_despesa_parcelada', despesa_id=parcela.despesa_parcelada.id)
         
         # Converter valor usando a função utilitária
         from .utils import parse_currency_value
@@ -2362,141 +2364,73 @@ def processar_pagamento_parcela(request, transacao_id):
         
         if valor_pago <= 0:
             messages.error(request, "Valor pago deve ser maior que zero.")
-            return redirect('detalhes_despesa_parcelada', despesa_id=transacao.despesa_parcelada.id)
+            return redirect('detalhes_despesa_parcelada', despesa_id=parcela.despesa_parcelada.id)
         
-        if valor_pago > transacao.valor:
+        if valor_pago > parcela.valor:
             messages.error(request, "Valor pago não pode ser maior que o valor da parcela.")
-            return redirect('detalhes_despesa_parcelada', despesa_id=transacao.despesa_parcelada.id)
+            return redirect('detalhes_despesa_parcelada', despesa_id=parcela.despesa_parcelada.id)
         
-        # Processar pagamento
-        if valor_pago == transacao.valor:
-            # Pagamento total - marcar como pago e criar transação de pagamento
-            transacao.pago = True
-            transacao.data_pagamento = data_pagamento
-            transacao.save()
-            
-            # Criar transação de pagamento automática
-            transacao_pagamento = Transacao.objects.create(
-                data=data_pagamento,
-                descricao=f"Pagamento: {transacao.descricao}",
-                valor=valor_pago,
-                categoria=transacao.categoria,
-                tipo='despesa',  # Pagamento é sempre uma despesa
-                eh_parcelada=False,  # Transação de pagamento não é parcelada
-                conta=transacao.conta,
-                pago=True,
-                data_pagamento=data_pagamento
-            )
-            
-            messages.success(request, f"Parcela paga integralmente em {data_pagamento.strftime('%d/%m/%Y')}. Transação de pagamento criada automaticamente.")
-            
+        # Processar pagamento usando o método da ParcelaPlanejada
+        if valor_pago == parcela.valor:
+            # Pagamento total
+            transacao = parcela.marcar_como_pago(data_pagamento, valor_pago)
+            messages.success(request, f"Parcela paga integralmente em {data_pagamento.strftime('%d/%m/%Y')}. Transação criada automaticamente.")
         else:
-            # Pagamento parcial - criar nova transação com o saldo
-            saldo_restante = transacao.valor - valor_pago
+            # Pagamento parcial - dividir a parcela
+            saldo_restante = parcela.valor - valor_pago
             
-            # Marcar transação atual como paga com valor parcial
-            transacao.valor = valor_pago
-            transacao.pago = True
-            transacao.data_pagamento = data_pagamento
-            transacao.save()
+            # Atualizar valor da parcela atual e marcar como paga
+            parcela.valor = valor_pago
+            transacao = parcela.marcar_como_pago(data_pagamento, valor_pago)
             
-            # Criar transação de pagamento automática para o valor pago
-            transacao_pagamento = Transacao.objects.create(
-                data=data_pagamento,
-                descricao=f"Pagamento parcial: {transacao.descricao}",
-                valor=valor_pago,
-                categoria=transacao.categoria,
-                tipo='despesa',  # Pagamento é sempre uma despesa
-                eh_parcelada=False,  # Transação de pagamento não é parcelada
-                conta=transacao.conta,
-                pago=True,
-                data_pagamento=data_pagamento
-            )
-            
-            # Criar nova transação para o saldo restante
-            nova_transacao = Transacao.objects.create(
-                data=transacao.data,
-                descricao=f"{transacao.descricao} (Saldo restante)",
-                valor=saldo_restante,
-                categoria=transacao.categoria,
-                tipo=transacao.tipo,
-                eh_parcelada=True,
-                transacao_pai=transacao.transacao_pai or transacao,
-                numero_parcela=transacao.numero_parcela,
-                total_parcelas=transacao.total_parcelas,
-                conta=transacao.conta,
-                despesa_parcelada=transacao.despesa_parcelada,
-                pago=False
+            # Criar nova parcela para o saldo restante
+            nova_parcela = ParcelaPlanejada.objects.create(
+                despesa_parcelada=parcela.despesa_parcelada,
+                numero_parcela=parcela.numero_parcela,  # Manter o mesmo número
+                data_vencimento=parcela.data_vencimento,
+                valor=saldo_restante
             )
             
             messages.success(request, 
                 f"Pagamento parcial de R$ {valor_pago:.2f} registrado em {data_pagamento.strftime('%d/%m/%Y')}. "
-                f"Saldo restante de R$ {saldo_restante:.2f} criado como nova parcela. Transação de pagamento criada automaticamente.")
-        
-        # Atualizar saldo da conta
-        transacao.conta.atualizar_saldo()
+                f"Saldo restante de R$ {saldo_restante:.2f} criado como nova parcela.")
         
     except ValueError as e:
         messages.error(request, "Formato de data ou valor inválido.")
     except Exception as e:
         messages.error(request, f"Erro ao processar pagamento: {str(e)}")
     
-    return redirect('detalhes_despesa_parcelada', despesa_id=transacao.despesa_parcelada.id)
+    return redirect('detalhes_despesa_parcelada', despesa_id=parcela.despesa_parcelada.id)
 
 @login_required
 @require_http_methods(["POST"])
-def marcar_parcela_nao_paga(request, transacao_id):
-    """Marca uma parcela como não paga e exclui a transação de pagamento correspondente."""
+def marcar_parcela_nao_paga(request, parcela_id):
+    """Marca uma parcela planejada como não paga e exclui a transação de pagamento correspondente."""
     try:
-        transacao = get_object_or_404(Transacao.objects, id=transacao_id, despesa_parcelada__isnull=False)
+        parcela = get_object_or_404(ParcelaPlanejada, id=parcela_id)
         
         # Verificar se a parcela está paga
-        if not transacao.pago or not transacao.data_pagamento:
+        if not parcela.pago or not parcela.data_pagamento:
             messages.warning(request, "Esta parcela já está marcada como não paga.")
-            return redirect('detalhes_despesa_parcelada', despesa_id=transacao.despesa_parcelada.id)
+            return redirect('detalhes_despesa_parcelada', despesa_id=parcela.despesa_parcelada.id)
         
         # Verificar se o mês da transação não está fechado
         from .utils import verificar_mes_fechado
-        mes_fechado, _ = verificar_mes_fechado(transacao.data_pagamento, transacao.conta)
+        mes_fechado, _ = verificar_mes_fechado(parcela.data_pagamento, parcela.conta)
         if mes_fechado:
-            messages.error(request, f"Não é possível alterar status de pagamento de {transacao.data_pagamento.strftime('%m/%Y')} pois o mês já foi fechado.")
-            return redirect('detalhes_despesa_parcelada', despesa_id=transacao.despesa_parcelada.id)
+            messages.error(request, f"Não é possível alterar status de pagamento de {parcela.data_pagamento.strftime('%m/%Y')} pois o mês já foi fechado.")
+            return redirect('detalhes_despesa_parcelada', despesa_id=parcela.despesa_parcelada.id)
         
-        # Buscar e excluir a transação de pagamento correspondente
-        data_pagamento = transacao.data_pagamento
-        valor_pagamento = transacao.valor
+        # Usar o método da ParcelaPlanejada para marcar como não pago
+        data_pagamento = parcela.data_pagamento
+        parcela.marcar_como_nao_pago()
         
-        # Procurar transação de pagamento criada automaticamente
-        transacao_pagamento = Transacao.objects.filter(
-            data=data_pagamento,
-            valor=valor_pagamento,
-            categoria=transacao.categoria,
-            conta=transacao.conta,
-            tipo='despesa',
-            eh_parcelada=False,
-            pago=True,
-            data_pagamento=data_pagamento
-        ).filter(
-            Q(descricao__startswith="Pagamento: ") | 
-            Q(descricao__startswith="Pagamento parcial: ")
-        ).first()
-        
-        if transacao_pagamento:
-            transacao_pagamento.delete()
-            messages.success(request, f"Parcela reaberta e transação de pagamento de {data_pagamento.strftime('%d/%m/%Y')} excluída com sucesso.")
-        else:
-            messages.success(request, "Parcela reaberta com sucesso.")
-        
-        # Marcar parcela como não paga
-        transacao.marcar_como_nao_pago()
-        
-        # Atualizar saldo da conta
-        transacao.conta.atualizar_saldo()
+        messages.success(request, f"Parcela reaberta e transação de pagamento de {data_pagamento.strftime('%d/%m/%Y')} excluída com sucesso.")
         
     except Exception as e:
         messages.error(request, f"Erro ao reabrir parcela: {str(e)}")
     
-    return redirect('detalhes_despesa_parcelada', despesa_id=transacao.despesa_parcelada.id)
+    return redirect('detalhes_despesa_parcelada', despesa_id=parcela.despesa_parcelada.id)
 
 @login_required
 @require_http_methods(["POST"])

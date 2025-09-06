@@ -443,35 +443,37 @@ class DespesaParcelada(models.Model):
         return self.valor_total / self.numero_parcelas
     
     def get_parcelas(self):
-        """Retorna todas as parcelas geradas para esta despesa parcelada"""
-        return Transacao.objects.filter(
-            despesa_parcelada=self
-        ).order_by('numero_parcela')
+        """Retorna as parcelas planejadas desta despesa parcelada"""
+        return self.parcelas_planejadas.all().order_by('numero_parcela')
     
     def get_parcelas_pagas(self):
-        """Retorna parcelas pagas"""
-        return self.get_parcelas().filter(pago=True)
+        """Retorna as parcelas pagas desta despesa parcelada"""
+        return self.parcelas_planejadas.filter(pago=True).order_by('numero_parcela')
     
     def get_parcelas_pendentes(self):
-        """Retorna parcelas pendentes"""
-        return self.get_parcelas().filter(pago=False)
+        """Retorna as parcelas pendentes desta despesa parcelada"""
+        return self.parcelas_planejadas.filter(pago=False).order_by('numero_parcela')
     
     def get_valor_pago(self):
-        """Retorna o valor total já pago"""
-        return self.get_parcelas_pagas().aggregate(total=Sum('valor'))['total'] or Decimal('0.00')
+        """Retorna o valor total pago das parcelas"""
+        return sum(parcela.valor for parcela in self.get_parcelas_pagas())
     
     def get_valor_pendente(self):
-        """Retorna o valor total pendente"""
-        return self.get_parcelas_pendentes().aggregate(total=Sum('valor'))['total'] or Decimal('0.00')
+        """Retorna o valor total pendente das parcelas"""
+        return sum(parcela.valor for parcela in self.get_parcelas_pendentes())
     
     def excluir_com_parcelas(self):
-        """Exclui a despesa parcelada e todas suas parcelas"""
-        parcelas = self.get_parcelas()
-        parcelas.delete()
+        """Exclui a despesa parcelada e todas as suas parcelas"""
+        # Excluir todas as parcelas planejadas (e suas transações se existirem)
+        for parcela in self.parcelas_planejadas.all():
+            if parcela.transacao_pagamento:
+                parcela.transacao_pagamento.delete()
+        self.parcelas_planejadas.all().delete()
+        # Excluir a despesa parcelada
         self.delete()
     
     def gerar_parcelas(self):
-        """Gera as parcelas da despesa parcelada"""
+        """Gera as parcelas planejadas da despesa parcelada (sem criar transações)"""
         if self.parcelas_geradas:
             return
         
@@ -483,19 +485,12 @@ class DespesaParcelada(models.Model):
             if self.dia_vencimento > 1:
                 data_vencimento = data_vencimento.replace(day=min(self.dia_vencimento, 28))
             
-            # Criar transação sem validação de data futura (parcelas podem ser futuras)
-            transacao = Transacao.objects.create(
-                descricao=f"{self.descricao} - Parcela {i}/{self.numero_parcelas}",
-                valor=valor_parcela,
-                categoria=self.categoria,
-                conta=self.conta,
-                tipo='saida',
-                responsavel=self.responsavel,
-                data=data_vencimento,
-                eh_parcelada=True,
+            # Criar parcela planejada (sem transação)
+            ParcelaPlanejada.objects.create(
+                despesa_parcelada=self,
                 numero_parcela=i,
-                total_parcelas=self.numero_parcelas,
-                despesa_parcelada=self
+                data_vencimento=data_vencimento,
+                valor=valor_parcela
             )
             
             # Calcula próxima data de vencimento
@@ -762,6 +757,104 @@ class ConfiguracaoFechamento(models.Model):
         
         # Qualquer outro caso não é permitido
         return False, "Só é permitido fechar o mês anterior ou o mês atual nos primeiros dias"
+
+
+class ParcelaPlanejada(models.Model):
+    """
+    Representa uma parcela planejada de uma despesa parcelada.
+    Não cria transação automaticamente - apenas quando confirmado o pagamento.
+    """
+    despesa_parcelada = models.ForeignKey('DespesaParcelada', on_delete=models.CASCADE, related_name='parcelas_planejadas')
+    numero_parcela = models.IntegerField()
+    data_vencimento = models.DateField()
+    valor = models.DecimalField(max_digits=10, decimal_places=2)
+    pago = models.BooleanField(default=False)
+    data_pagamento = models.DateField(null=True, blank=True)
+    transacao_pagamento = models.ForeignKey('Transacao', on_delete=models.SET_NULL, null=True, blank=True, help_text="Transação criada quando a parcela foi paga")
+    tenant_id = models.IntegerField(null=True, blank=True, help_text="ID do tenant (usuário) para isolamento de dados")
+    
+    objects = TenantManager()
+    
+    class Meta:
+        ordering = ['numero_parcela']
+        unique_together = [('despesa_parcelada', 'numero_parcela')]
+        verbose_name = 'Parcela Planejada'
+        verbose_name_plural = 'Parcelas Planejadas'
+    
+    def __str__(self):
+        return f"{self.despesa_parcelada.descricao} - Parcela {self.numero_parcela}/{self.despesa_parcelada.numero_parcelas}"
+    
+    @property
+    def descricao(self):
+        """Retorna a descrição da parcela"""
+        return f"{self.despesa_parcelada.descricao} - Parcela {self.numero_parcela}/{self.despesa_parcelada.numero_parcelas}"
+    
+    @property
+    def categoria(self):
+        """Retorna a categoria da despesa parcelada"""
+        return self.despesa_parcelada.categoria
+    
+    @property
+    def conta(self):
+        """Retorna a conta da despesa parcelada"""
+        return self.despesa_parcelada.conta
+    
+    @property
+    def responsavel(self):
+        """Retorna o responsável da despesa parcelada"""
+        return self.despesa_parcelada.responsavel
+    
+    @property
+    def total_parcelas(self):
+        """Retorna o total de parcelas da despesa"""
+        return self.despesa_parcelada.numero_parcelas
+    
+    def marcar_como_pago(self, data_pagamento, valor_pago=None):
+        """
+        Marca a parcela como paga e cria a transação correspondente.
+        """
+        if valor_pago is None:
+            valor_pago = self.valor
+            
+        # Criar transação de pagamento
+        transacao = Transacao.objects.create(
+            data=data_pagamento,
+            descricao=f"Pagamento: {self.descricao}",
+            valor=valor_pago,
+            categoria=self.categoria,
+            tipo='despesa',
+            responsavel=self.responsavel,
+            eh_parcelada=False,
+            conta=self.conta,
+            pago=True,
+            data_pagamento=data_pagamento
+        )
+        
+        # Atualizar parcela
+        self.pago = True
+        self.data_pagamento = data_pagamento
+        self.transacao_pagamento = transacao
+        self.save()
+        
+        # Atualizar saldo da conta
+        self.conta.atualizar_saldo()
+        
+        return transacao
+    
+    def marcar_como_nao_pago(self):
+        """
+        Marca a parcela como não paga e remove a transação correspondente.
+        """
+        if self.transacao_pagamento:
+            self.transacao_pagamento.delete()
+        
+        self.pago = False
+        self.data_pagamento = None
+        self.transacao_pagamento = None
+        self.save()
+        
+        # Atualizar saldo da conta
+        self.conta.atualizar_saldo()
 
 
 class PasswordResetToken(models.Model):

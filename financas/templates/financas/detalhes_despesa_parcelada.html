@@ -610,16 +610,16 @@
                                 </thead>
                                 <tbody>
                                     {% for parcela in parcelas %}
-                                        <tr class="{% if parcela.data < today %}table-danger{% elif parcela.data == today %}table-warning{% endif %}">
+                                        <tr class="{% if parcela.data_vencimento < today %}table-danger{% elif parcela.data_vencimento == today %}table-warning{% endif %}">
                                             <td class="text-center">
                                                 <span class="badge bg-primary">
                                                     {{ parcela.numero_parcela }}/{{ parcela.total_parcelas }}
                                                 </span>
                                             </td>
                                             <td>
-                                                <span class="fw-bold">{{ parcela.data|date:"d/m/Y" }}</span>
+                                                <span class="fw-bold">{{ parcela.data_vencimento|date:"d/m/Y" }}</span>
                                                 <br>
-                                                <small class="text-muted">{{ parcela.data|date:"l" }}</small>
+                                                <small class="text-muted">{{ parcela.data_vencimento|date:"l" }}</small>
                                             </td>
                                             <td class="text-end">
                                                 <span class="h6 text-success mb-0">
@@ -627,12 +627,12 @@
                                                 </span>
                                             </td>
                                             <td class="text-center">
-                                                {% if parcela.data < today %}
+                                                {% if parcela.data_vencimento < today %}
                                                     <span class="badge bg-danger">
                                                         <i class="fas fa-exclamation-triangle me-1"></i>
                                                         Vencida
                                                     </span>
-                                                {% elif parcela.data == today %}
+                                                {% elif parcela.data_vencimento == today %}
                                                     <span class="badge bg-warning text-dark">
                                                         <i class="fas fa-clock me-1"></i>
                                                         Vence Hoje
