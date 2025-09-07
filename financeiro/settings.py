@@ -93,40 +93,37 @@ WSGI_APPLICATION = 'financeiro.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # Configuração do banco de dados
-# Forçar SQLite quando USE_SQLITE=True, ignorando DATABASE_URL
+# Forçar SQLite quando USE_SQLITE=True, ignorando DATABASE_URL completamente
 USE_SQLITE_FLAG = config('USE_SQLITE', default=False, cast=bool)
+DATABASE_URL = config('DATABASE_URL', default=None)
 
+print(f"[SETTINGS] USE_SQLITE_FLAG: {USE_SQLITE_FLAG}")
+print(f"[SETTINGS] DATABASE_URL: {DATABASE_URL}")
+
+# Forçar SQLite se USE_SQLITE for True, independentemente de DATABASE_URL
 if USE_SQLITE_FLAG:
-    print("[SETTINGS] Usando SQLite (USE_SQLITE=True)")
+    print("[SETTINGS] FORÇANDO SQLite (USE_SQLITE=True) - Ignorando DATABASE_URL")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+# Só usar PostgreSQL se USE_SQLITE for False E DATABASE_URL existir e não for vazia
+elif DATABASE_URL and DATABASE_URL.strip():
+    print(f"[SETTINGS] Usando PostgreSQL com DATABASE_URL: {DATABASE_URL[:50]}...")
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL)
+    }
 else:
-    print("[SETTINGS] Tentando usar PostgreSQL")
-    # Configuração para PostgreSQL (Render)
-    DATABASE_URL = config('DATABASE_URL', default=None)
-    
-    if DATABASE_URL:
-        print(f"[SETTINGS] DATABASE_URL encontrada: {DATABASE_URL[:50]}...")
-        DATABASES = {
-            'default': dj_database_url.parse(DATABASE_URL)
+    print("[SETTINGS] Usando SQLite como fallback (DATABASE_URL vazia ou não definida)")
+    # Fallback para SQLite se DATABASE_URL não estiver definida ou estiver vazia
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
         }
-    else:
-        print("[SETTINGS] DATABASE_URL não encontrada, usando configuração local")
-        # Fallback para desenvolvimento local
-        DATABASES = {
-            'default': {
-                'ENGINE': config('DB_ENGINE', default='django.db.backends.postgresql'),
-                'NAME': config('DB_NAME', default='financeiro_db'),
-                'USER': config('DB_USER', default='postgres'),
-                'PASSWORD': config('DB_PASSWORD', default='postgres'),
-                'HOST': config('DB_HOST', default='localhost'),
-                'PORT': config('DB_PORT', default='5432'),
-            }
-        }
+    }
 
 
 # Password validation
