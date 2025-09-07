@@ -92,27 +92,7 @@ WSGI_APPLICATION = 'financeiro.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Configuração para PostgreSQL (Render)
-DATABASE_URL = config('DATABASE_URL', default=None)
-
-if DATABASE_URL:
-    DATABASES = {
-        'default': dj_database_url.parse(DATABASE_URL)
-    }
-else:
-    # Fallback para desenvolvimento local
-    DATABASES = {
-        'default': {
-            'ENGINE': config('DB_ENGINE', default='django.db.backends.postgresql'),
-            'NAME': config('DB_NAME', default='financeiro_db'),
-            'USER': config('DB_USER', default='postgres'),
-            'PASSWORD': config('DB_PASSWORD', default='postgres'),
-            'HOST': config('DB_HOST', default='localhost'),
-            'PORT': config('DB_PORT', default='5432'),
-        }
-    }
-
-# Fallback para SQLite em desenvolvimento (se PostgreSQL não estiver disponível)
+# Priorizar SQLite se especificado
 if config('USE_SQLITE', default=False, cast=bool):
     DATABASES = {
         'default': {
@@ -120,6 +100,26 @@ if config('USE_SQLITE', default=False, cast=bool):
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+else:
+    # Configuração para PostgreSQL (Render)
+    DATABASE_URL = config('DATABASE_URL', default=None)
+    
+    if DATABASE_URL:
+        DATABASES = {
+            'default': dj_database_url.parse(DATABASE_URL)
+        }
+    else:
+        # Fallback para desenvolvimento local
+        DATABASES = {
+            'default': {
+                'ENGINE': config('DB_ENGINE', default='django.db.backends.postgresql'),
+                'NAME': config('DB_NAME', default='financeiro_db'),
+                'USER': config('DB_USER', default='postgres'),
+                'PASSWORD': config('DB_PASSWORD', default='postgres'),
+                'HOST': config('DB_HOST', default='localhost'),
+                'PORT': config('DB_PORT', default='5432'),
+            }
+        }
 
 
 # Password validation
