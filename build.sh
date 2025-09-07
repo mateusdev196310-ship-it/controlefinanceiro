@@ -2,6 +2,14 @@
 # exit on error
 set -o errexit
 
+echo "=== INICIANDO BUILD ==="
+echo "Python version: $(python --version)"
+echo "Pip version: $(pip --version)"
+
+# Debug das variáveis de ambiente
+echo "\n=== DEBUG VARIÁVEIS DE AMBIENTE ==="
+python debug_render_env.py
+
 # Debug: Verificar configuração do banco
 echo "=== DEBUG: Configuração do Banco ==="
 echo "USE_SQLITE: $USE_SQLITE"
