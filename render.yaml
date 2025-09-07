@@ -22,6 +22,12 @@ services:
         fromDatabase:
           name: financeiro-db
           property: connectionString
+      - key: ADMIN_EMAIL
+        value: "admin@controlefinanceiro.com"
+      - key: EMAIL_HOST_USER
+        value: "mateusqa.testes@gmail.com"
+      - key: EMAIL_HOST_PASSWORD
+        value: "hlnk wrxa mzuc qwua"
 
   - type: pserv
     name: financeiro-db
