@@ -24,3 +24,5 @@ services:
         value: "mateusqa.testes@gmail.com"
       - key: EMAIL_HOST_PASSWORD
         value: "hlnk wrxa mzuc qwua"
+      - key: DATABASE_URL
+        value: ""
