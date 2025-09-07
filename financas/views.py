@@ -2104,13 +2104,18 @@ def registro_view(request):
             user.save()
             
             # Enviar email com código de verificação
-            enviar_codigo_verificacao(user, request)
-            
-            # Armazenar ID do usuário na sessão para a próxima etapa
-            request.session['user_id_verificacao'] = user.id
-            
-            messages.success(request, 'Código de verificação enviado para seu email!')
-            return redirect('verificar_codigo')
+            try:
+                enviar_codigo_verificacao(user, request)
+                # Armazenar ID do usuário na sessão para a próxima etapa
+                request.session['user_id_verificacao'] = user.id
+                messages.success(request, 'Código de verificação enviado para seu email!')
+                return redirect('verificar_codigo')
+            except Exception as email_error:
+                logger.error(f"Erro ao enviar email de verificação: {str(email_error)}")
+                # Mesmo com erro no email, permite continuar o processo
+                request.session['user_id_verificacao'] = user.id
+                messages.warning(request, f'Usuário criado, mas houve problema no envio do email. Código: {codigo}. Tente reenviar o código.')
+                return redirect('verificar_codigo')
             
         except Exception as e:
             logger.error(f"Erro ao criar usuário: {str(e)}")
@@ -2140,6 +2145,11 @@ def enviar_codigo_verificacao(user, request):
     """
     
     try:
+        # Verificar se as configurações de email estão definidas
+        if not settings.EMAIL_HOST_USER or not settings.EMAIL_HOST_PASSWORD:
+            logger.error("Configurações de email não definidas")
+            raise Exception("Configurações de email não definidas")
+            
         send_mail(
             assunto,
             mensagem,
