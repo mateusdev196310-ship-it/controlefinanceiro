@@ -17,7 +17,7 @@ services:
       - key: ALLOWED_HOSTS
         value: "controlefinanceiro-aio3.onrender.com,127.0.0.1,localhost"
       - key: USE_SQLITE
-        value: "True"
+        value: "False"
       - key: ADMIN_EMAIL
         value: "admin@controlefinanceiro.com"
       - key: EMAIL_HOST_USER
@@ -25,4 +25,12 @@ services:
       - key: EMAIL_HOST_PASSWORD
         value: "hlnk wrxa mzuc qwua"
       - key: DATABASE_URL
-        value: ""
+        fromDatabase:
+          name: financeiro-db
+          property: connectionString
+
+databases:
+  - name: financeiro-db
+    databaseName: financeiro
+    user: financeiro_user
+    plan: free
