@@ -64,8 +64,10 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'financas.middleware.TenantMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
 
 ROOT_URLCONF = 'financeiro.urls'
 
@@ -93,11 +95,20 @@ WSGI_APPLICATION = 'financeiro.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 # Configuração do banco de dados
-# Forçar SQLite quando USE_SQLITE=True, ignorando DATABASE_URL completamente
-USE_SQLITE_FLAG = config('USE_SQLITE', default=False, cast=bool)
+# Conversão robusta para boolean - strings "False", "false", "0" são False
+def str_to_bool(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.lower() in ('true', '1', 'yes', 'on')
+    return bool(value)
+
+USE_SQLITE_RAW = config('USE_SQLITE', default='False')
+USE_SQLITE_FLAG = str_to_bool(USE_SQLITE_RAW)
 DATABASE_URL = config('DATABASE_URL', default=None)
 
-print(f"[SETTINGS] USE_SQLITE_FLAG: {USE_SQLITE_FLAG}")
+print(f"[SETTINGS] USE_SQLITE_RAW: '{USE_SQLITE_RAW}' (tipo: {type(USE_SQLITE_RAW).__name__})")
+print(f"[SETTINGS] USE_SQLITE_FLAG: {USE_SQLITE_FLAG} (tipo: {type(USE_SQLITE_FLAG).__name__})")
 print(f"[SETTINGS] DATABASE_URL: {DATABASE_URL}")
 
 # Forçar SQLite se USE_SQLITE for True, independentemente de DATABASE_URL
