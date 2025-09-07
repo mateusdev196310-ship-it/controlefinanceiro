@@ -92,8 +92,12 @@ WSGI_APPLICATION = 'financeiro.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Priorizar SQLite se especificado
-if config('USE_SQLITE', default=False, cast=bool):
+# Configuração do banco de dados
+# Forçar SQLite quando USE_SQLITE=True, ignorando DATABASE_URL
+USE_SQLITE_FLAG = config('USE_SQLITE', default=False, cast=bool)
+
+if USE_SQLITE_FLAG:
+    print("[SETTINGS] Usando SQLite (USE_SQLITE=True)")
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -101,14 +105,17 @@ if config('USE_SQLITE', default=False, cast=bool):
         }
     }
 else:
+    print("[SETTINGS] Tentando usar PostgreSQL")
     # Configuração para PostgreSQL (Render)
     DATABASE_URL = config('DATABASE_URL', default=None)
     
     if DATABASE_URL:
+        print(f"[SETTINGS] DATABASE_URL encontrada: {DATABASE_URL[:50]}...")
         DATABASES = {
             'default': dj_database_url.parse(DATABASE_URL)
         }
     else:
+        print("[SETTINGS] DATABASE_URL não encontrada, usando configuração local")
         # Fallback para desenvolvimento local
         DATABASES = {
             'default': {
