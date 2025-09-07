@@ -23,15 +23,24 @@ django.setup()
 from django.db import connection
 try:
     with connection.cursor() as cursor:
-        cursor.execute(\"SELECT name FROM sqlite_master WHERE type='table';\")
+        # Para PostgreSQL, usar information_schema
+        cursor.execute(\"SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';\")
         tables = cursor.fetchall()
-        print(f'Tabelas existentes: {[table[0] for table in tables]}')
-        if 'auth_user_custom' in [table[0] for table in tables]:
+        table_names = [table[0] for table in tables]
+        print(f'Tabelas existentes: {table_names}')
+        if 'auth_user_custom' in table_names:
             print('✓ Tabela auth_user_custom encontrada')
         else:
             print('✗ Tabela auth_user_custom NÃO encontrada')
+        print(f'Total de tabelas: {len(table_names)}')
 except Exception as e:
     print(f'Erro ao verificar banco: {e}')
+    print('Tentando conectar ao banco...')
+    try:
+        cursor = connection.cursor()
+        print('✓ Conexão com banco estabelecida')
+    except Exception as conn_error:
+        print(f'✗ Erro de conexão: {conn_error}')
 "
 echo "============================================"
 
