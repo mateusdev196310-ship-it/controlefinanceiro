@@ -28,6 +28,9 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-q3i&$4h-)gesath0@4oo6
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
+# Configuração para logs detalhados em produção
+DEBUG_PROPAGATE_EXCEPTIONS = config('DEBUG_PROPAGATE_EXCEPTIONS', default=False, cast=bool)
+
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='127.0.0.1,localhost,controlefinanceiro-aio3.onrender.com').split(',')
 
 # Configurações de segurança para produção
