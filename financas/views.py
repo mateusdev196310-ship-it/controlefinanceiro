@@ -788,9 +788,12 @@ def criar_conta(request):
         
         # Se há saldo inicial, criar uma transação de receita no mês atual
         if saldo_inicial and float(saldo_inicial) > 0:
-            # Buscar ou criar categoria "Saldo Inicial"
+            tenant_id = get_tenant_id(request.user)
+            
+            # Buscar ou criar categoria "Saldo Inicial" com tenant_id correto
             categoria_saldo, created = Categoria.objects.get_or_create(
                 nome='Saldo Inicial',
+                tenant_id=tenant_id,
                 defaults={'cor': '#28a745'}  # Verde
             )
             
@@ -857,9 +860,12 @@ def contas(request):
         
         # Se há saldo inicial, criar uma transação de receita no mês atual
         if saldo_inicial and float(saldo_inicial) > 0:
-            # Buscar ou criar categoria "Saldo Inicial"
+            tenant_id = get_tenant_id(request.user)
+            
+            # Buscar ou criar categoria "Saldo Inicial" com tenant_id correto
             categoria_saldo, created = Categoria.objects.get_or_create(
                 nome='Saldo Inicial',
+                tenant_id=tenant_id,
                 defaults={'cor': '#28a745'}  # Verde
             )
             
