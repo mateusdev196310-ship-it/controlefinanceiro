@@ -960,6 +960,18 @@
 let parcelaAtual = null;
 
 function abrirModalPagamento(parcelaId, descricao, valor) {
+    console.log('=== ABRINDO MODAL DE PAGAMENTO ===');
+    console.log('Parcela ID:', parcelaId);
+    console.log('Descrição:', descricao);
+    console.log('Valor:', valor);
+    
+    // Verificar se o parcelaId é válido
+    if (!parcelaId || parcelaId === '0' || parcelaId === 0) {
+        console.error('ERRO: ID da parcela inválido:', parcelaId);
+        alert('Erro: ID da parcela inválido. Recarregue a página e tente novamente.');
+        return;
+    }
+    
     parcelaAtual = parcelaId;
     
     // Preencher dados da parcela
@@ -975,9 +987,16 @@ function abrirModalPagamento(parcelaId, descricao, valor) {
     document.getElementById('dataPagamento').value = dataFormatada;
     
     // Configurar action do form
-    const actionUrl = `{% url 'processar_pagamento_parcela' 0 %}`.replace('0', parcelaId);
+    const baseUrl = `{% url 'processar_pagamento_parcela' 0 %}`;
+    const actionUrl = baseUrl.replace('0', parcelaId);
     document.getElementById('formPagamento').action = actionUrl;
-    console.log('Form action configurado para:', actionUrl);
+    console.log('Base URL:', baseUrl);
+    console.log('Action URL final:', actionUrl);
+    
+    // Verificar se o formulário foi configurado corretamente
+    const form = document.getElementById('formPagamento');
+    console.log('Formulário após configuração:', form);
+    console.log('Action do formulário:', form.action);
     
     // Abrir modal
     const modal = new bootstrap.Modal(document.getElementById('modalPagamento'));
@@ -988,10 +1007,28 @@ function abrirModalPagamento(parcelaId, descricao, valor) {
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('formPagamento');
     if (form) {
+        console.log('Formulário encontrado:', form);
         form.addEventListener('submit', function(e) {
+            console.log('=== SUBMISSÃO DO FORMULÁRIO ===');
             console.log('Formulário sendo submetido para:', this.action);
-            console.log('Dados do formulário:', new FormData(this));
+            console.log('Método:', this.method);
+            
+            const formData = new FormData(this);
+            console.log('Dados do formulário:');
+            for (let [key, value] of formData.entries()) {
+                console.log(`  ${key}: ${value}`);
+            }
+            
+            // Verificar se a action está definida
+            if (!this.action || this.action.includes('/0/')) {
+                console.error('ERRO: Action do formulário não está definida corretamente!');
+                e.preventDefault();
+                alert('Erro: ID da parcela não foi definido. Recarregue a página e tente novamente.');
+                return false;
+            }
         });
+    } else {
+        console.error('Formulário formPagamento não encontrado!');
     }
 });
 

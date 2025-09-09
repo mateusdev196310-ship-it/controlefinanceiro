@@ -2340,12 +2340,19 @@ def processar_pagamento_parcela(request, parcela_id):
     """Processa o pagamento de uma parcela planejada com validação de mês fechado."""
     from .utils import verificar_mes_fechado
     from decimal import Decimal
+    from django.db import models
     import json
     import logging
     
     logger = logging.getLogger(__name__)
-    logger.info(f"Processando pagamento da parcela {parcela_id}")
+    logger.info(f"=== INÍCIO PROCESSAMENTO PAGAMENTO PARCELA {parcela_id} ===")
+    logger.info(f"Método HTTP: {request.method}")
     logger.info(f"Dados POST: {request.POST}")
+    logger.info(f"User: {request.user}")
+    
+    if request.method != 'POST':
+        logger.warning(f"Método {request.method} não permitido")
+        return redirect('detalhes_despesa_parcelada', despesa_id=1)
     
     try:
         parcela = get_object_or_404(ParcelaPlanejada, id=parcela_id)
@@ -2387,25 +2394,53 @@ def processar_pagamento_parcela(request, parcela_id):
             return redirect('detalhes_despesa_parcelada', despesa_id=parcela.despesa_parcelada.id)
         
         # Processar pagamento usando o método da ParcelaPlanejada
+        logger.info(f"Valor pago: {valor_pago}, Valor da parcela: {parcela.valor}")
+        
         if valor_pago == parcela.valor:
             # Pagamento total
+            logger.info("Processando pagamento total")
             transacao = parcela.marcar_como_pago(data_pagamento, valor_pago)
             messages.success(request, f"Parcela paga integralmente em {data_pagamento.strftime('%d/%m/%Y')}. Transação criada automaticamente.")
         else:
             # Pagamento parcial - dividir a parcela
+            logger.info("Processando pagamento parcial")
             saldo_restante = parcela.valor - valor_pago
+            logger.info(f"Saldo restante calculado: {saldo_restante}")
             
             # Atualizar valor da parcela atual e marcar como paga
+            logger.info(f"Atualizando valor da parcela de {parcela.valor} para {valor_pago}")
             parcela.valor = valor_pago
             transacao = parcela.marcar_como_pago(data_pagamento, valor_pago)
+            logger.info(f"Parcela marcada como paga. Transação ID: {transacao.id if transacao else 'None'}")
             
             # Criar nova parcela para o saldo restante
-            nova_parcela = ParcelaPlanejada.objects.create(
-                despesa_parcelada=parcela.despesa_parcelada,
-                numero_parcela=parcela.numero_parcela,  # Manter o mesmo número
-                data_vencimento=parcela.data_vencimento,
-                valor=saldo_restante
-            )
+            logger.info(f"Criando nova parcela com valor {saldo_restante}")
+            try:
+                # Encontrar o próximo número de parcela disponível
+                max_parcela = ParcelaPlanejada.objects.filter(
+                    despesa_parcelada=parcela.despesa_parcelada
+                ).aggregate(max_numero=models.Max('numero_parcela'))['max_numero'] or 0
+                
+                proximo_numero = max_parcela + 1
+                logger.info(f"Próximo número de parcela: {proximo_numero}")
+                
+                nova_parcela = ParcelaPlanejada.objects.create(
+                    despesa_parcelada=parcela.despesa_parcelada,
+                    numero_parcela=proximo_numero,  # Usar próximo número disponível
+                    data_vencimento=parcela.data_vencimento,
+                    valor=saldo_restante,
+                    tenant_id=parcela.tenant_id  # Manter o mesmo tenant_id
+                )
+                logger.info(f"Nova parcela criada com ID: {nova_parcela.id} e número {proximo_numero}")
+                
+                # Atualizar o número total de parcelas da despesa
+                parcela.despesa_parcelada.numero_parcelas = proximo_numero
+                parcela.despesa_parcelada.save()
+                logger.info(f"Número total de parcelas atualizado para: {proximo_numero}")
+                
+            except Exception as e:
+                logger.error(f"Erro ao criar nova parcela: {str(e)}")
+                raise
             
             messages.success(request, 
                 f"Pagamento parcial de R$ {valor_pago:.2f} registrado em {data_pagamento.strftime('%d/%m/%Y')}. "
