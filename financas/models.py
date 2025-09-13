@@ -493,15 +493,16 @@ class DespesaParcelada(models.Model):
                 valor=valor_parcela
             )
             
-            # Calcula próxima data de vencimento
-            if self.intervalo_tipo == 'mensal':
-                data_vencimento = data_vencimento + relativedelta(months=1)
-            elif self.intervalo_tipo == 'quinzenal':
-                data_vencimento = data_vencimento + relativedelta(days=15)
-            elif self.intervalo_tipo == 'semanal':
-                data_vencimento = data_vencimento + relativedelta(days=7)
-            elif self.intervalo_tipo == 'personalizado' and self.intervalo_dias:
-                data_vencimento = data_vencimento + relativedelta(days=self.intervalo_dias)
+            # Calcula próxima data de vencimento (apenas se não for a última parcela)
+            if i < self.numero_parcelas:
+                if self.intervalo_tipo == 'mensal':
+                    data_vencimento = data_vencimento + relativedelta(months=1)
+                elif self.intervalo_tipo == 'quinzenal':
+                    data_vencimento = data_vencimento + relativedelta(days=15)
+                elif self.intervalo_tipo == 'semanal':
+                    data_vencimento = data_vencimento + relativedelta(days=7)
+                elif self.intervalo_tipo == 'personalizado' and self.intervalo_dias:
+                    data_vencimento = data_vencimento + relativedelta(days=self.intervalo_dias)
         
         self.parcelas_geradas = True
         self.save()

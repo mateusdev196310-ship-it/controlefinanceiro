@@ -8,6 +8,7 @@ from decimal import Decimal
 from django.db import transaction
 from django.db.models import Sum, Q
 from django.utils import timezone
+from .utils import validar_data_futura
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 import logging
@@ -265,15 +266,16 @@ class TransacaoService:
             with transaction.atomic():
                 conta = Conta.objects.get(id=conta_id)
                 
-                # Validações de negócio removidas para permitir lançamento livre
-                # if valor <= 0:
-                #     raise TransacaoServiceError(ErrorMessages.VALOR_ZERO)
-                # 
-                # if not TipoTransacao.is_valid_type(tipo):
-                #     raise TransacaoServiceError(ErrorMessages.TIPO_INVALIDO)
-                # 
-                # if data and data > timezone.now().date():
-                #     raise TransacaoServiceError(ErrorMessages.DATA_FUTURA)
+                # Validações de negócio
+                if valor <= 0:
+                    raise TransacaoServiceError(ErrorMessages.VALOR_ZERO)
+                
+                if not TipoTransacao.is_valid_type(tipo):
+                    raise TransacaoServiceError(ErrorMessages.TIPO_INVALIDO)
+                
+                # Validação de data futura
+                if validar_data_futura(data):
+                    raise TransacaoServiceError(ErrorMessages.DATA_FUTURA)
                 
                 # Buscar categoria se fornecida
                 categoria_obj = None

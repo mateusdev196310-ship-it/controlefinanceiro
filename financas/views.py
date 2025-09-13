@@ -28,7 +28,7 @@ from .services import ContaService, TransacaoService
 from .constants import TipoTransacao, SuccessMessages, ErrorMessages
 from .exceptions import ContaServiceError, TransacaoServiceError
 from .logging_config import get_logger
-from .utils import parse_currency_value
+from .utils import parse_currency_value, validar_data_futura
 
 logger = get_logger(__name__)
 
@@ -292,12 +292,40 @@ def adicionar_transacao(request, transacao_id=None):
             # Debug: Log dos dados extraídos
             logger.info(f"Dados extraídos - descricao: {descricao}, valor: {valor_str}, categoria_id: {categoria_id}, conta_id: {conta_id}, tipo: {tipo}, data: {data_str}")
             
-            # Validações básicas removidas para permitir lançamento livre
-            # campos_obrigatorios = [descricao, valor_str, categoria_id, conta_id, tipo]
-            # if not all(campos_obrigatorios):
-            #     logger.warning(f"Validação falhou - campos obrigatórios vazios: descricao={bool(descricao)}, valor={bool(valor_str)}, categoria={bool(categoria_id)}, conta={bool(conta_id)}, tipo={bool(tipo)}")
-            #     messages.error(request, "Todos os campos obrigatórios devem ser preenchidos.")
-            #     return redirect('adicionar_transacao')
+            # Validações básicas
+            campos_obrigatorios = [descricao, valor_str, categoria_id, conta_id, tipo]
+            if not all(campos_obrigatorios):
+                logger.warning(f"Validação falhou - campos obrigatórios vazios: descricao={bool(descricao)}, valor={bool(valor_str)}, categoria={bool(categoria_id)}, conta={bool(conta_id)}, tipo={bool(tipo)}")
+                messages.error(request, "Todos os campos obrigatórios devem ser preenchidos.")
+                
+                # Preparar contexto com dados preservados
+                form_data = {
+                    'descricao': descricao,
+                    'valor': valor_str,
+                    'categoria': categoria_id,
+                    'conta': conta_id,
+                    'tipo': tipo,
+                    'data': data_str,
+                    'responsavel': responsavel
+                }
+                
+                try:
+                    categorias = Categoria.objects.all()
+                    contas = Conta.objects.all()
+                    
+                    context = {
+                        'categorias': categorias,
+                        'contas': contas,
+                        'tipos_transacao': TipoTransacao.CHOICES,
+                        'transacao': transacao_existente,
+                        'is_edit': bool(transacao_existente),
+                        'form_data': form_data
+                    }
+                    
+                    return render(request, 'financas/adicionar_transacao.html', context)
+                except Exception as e:
+                    logger.error(f"Erro ao carregar formulário com dados preservados: {str(e)}")
+                    return redirect('adicionar_transacao')
             
             logger.info("Validação básica passou - todos os campos obrigatórios preenchidos")
             
@@ -307,28 +335,123 @@ def adicionar_transacao(request, transacao_id=None):
                 logger.info(f"Valor convertido: {valor_str} -> {valor}")
             except (ValueError, TypeError) as e:
                 logger.error(f"Erro ao converter valor '{valor_str}': {e}")
-                messages.error(request, "Valor inválido. Use apenas números.")
-                return redirect('transacao_create')
+                
+                # Preparar contexto com dados preservados
+                form_data = {
+                    'descricao': descricao,
+                    'valor': '',  # Limpar valor inválido
+                    'categoria': categoria_id,
+                    'conta': conta_id,
+                    'tipo': tipo,
+                    'data': data_str,
+                    'responsavel': responsavel
+                }
+                
+                try:
+                    categorias = Categoria.objects.all()
+                    contas = Conta.objects.all()
+                    
+                    context = {
+                        'categorias': categorias,
+                        'contas': contas,
+                        'tipos_transacao': TipoTransacao.CHOICES,
+                        'transacao': transacao_existente,
+                        'is_edit': bool(transacao_existente),
+                        'form_data': form_data,
+                        'campo_erro': 'valor',
+                        'erro_valor': 'Valor inválido. Use apenas números e vírgula para decimais.'
+                    }
+                    
+                    return render(request, 'financas/adicionar_transacao.html', context)
+                except Exception as e:
+                    logger.error(f"Erro ao carregar formulário com dados preservados: {str(e)}")
+                    return redirect('adicionar_transacao')
             
             # Converter data se fornecida
             data = None
             if data_str:
                 try:
                     data = datetime.strptime(data_str, '%Y-%m-%d').date()
+                    
+                    # Verificar se a data não é futura
+                    if validar_data_futura(data):
+                        logger.warning(f"Tentativa de criar transação com data futura: {data}")
+                        
+                        # Preparar contexto com dados preservados
+                        form_data = {
+                            'descricao': descricao,
+                            'valor': valor_str,
+                            'categoria': categoria_id,
+                            'conta': conta_id,
+                            'tipo': tipo,
+                            'data': '',  # Limpar data inválida
+                            'responsavel': responsavel
+                        }
+                        
+                        try:
+                            categorias = Categoria.objects.all()
+                            contas = Conta.objects.all()
+                            
+                            context = {
+                                'categorias': categorias,
+                                'contas': contas,
+                                'tipos_transacao': TipoTransacao.CHOICES,
+                                'transacao': transacao_existente,
+                                'is_edit': bool(transacao_existente),
+                                'form_data': form_data,
+                                'campo_erro': 'data',
+                                'erro_data': 'Não é possível criar transações com data futura.'
+                            }
+                            
+                            return render(request, 'financas/adicionar_transacao.html', context)
+                        except Exception as e:
+                            logger.error(f"Erro ao carregar formulário com dados preservados: {str(e)}")
+                            return redirect('adicionar_transacao')
+                    
                 except ValueError:
-                    messages.error(request, "Data inválida. Use o formato DD/MM/AAAA.")
-                    return redirect('transacao_create')
+                    logger.warning(f"Data inválida fornecida: {data_str}")
+                    
+                    # Preparar contexto com dados preservados
+                    form_data = {
+                        'descricao': descricao,
+                        'valor': valor_str,
+                        'categoria': categoria_id,
+                        'conta': conta_id,
+                        'tipo': tipo,
+                        'data': '',  # Limpar data inválida
+                        'responsavel': responsavel
+                    }
+                    
+                    try:
+                        categorias = Categoria.objects.all()
+                        contas = Conta.objects.all()
+                        
+                        context = {
+                            'categorias': categorias,
+                            'contas': contas,
+                            'tipos_transacao': TipoTransacao.CHOICES,
+                            'transacao': transacao_existente,
+                            'is_edit': bool(transacao_existente),
+                            'form_data': form_data,
+                            'campo_erro': 'data',
+                            'erro_data': 'Data inválida. Use o formato correto.'
+                        }
+                        
+                        return render(request, 'financas/adicionar_transacao.html', context)
+                    except Exception as e:
+                        logger.error(f"Erro ao carregar formulário com dados preservados: {str(e)}")
+                        return redirect('adicionar_transacao')
             
             # Verificar se categoria existe
             categoria = get_object_or_404(Categoria.objects, id=categoria_id)
             logger.info(f"Categoria encontrada: {categoria.nome} (tipo: {categoria.tipo})")
             
-            # Validação de compatibilidade removida para permitir lançamento livre
-            # if categoria.tipo != 'ambos' and categoria.tipo != tipo:
-            #     error_msg = f"A categoria '{categoria.nome}' é do tipo '{categoria.tipo}' e não pode ser usada para transações do tipo '{tipo}'."
-            #     logger.warning(f"Validação de tipo falhou - categoria: {categoria.tipo}, transação: {tipo}")
-            #     messages.error(request, error_msg)
-            #     return redirect('adicionar_transacao')
+            # Validação de compatibilidade de categoria
+            if categoria.tipo != 'ambos' and categoria.tipo != tipo:
+                error_msg = f"A categoria '{categoria.nome}' é do tipo '{categoria.tipo}' e não pode ser usada para transações do tipo '{tipo}'."
+                logger.warning(f"Validação de tipo falhou - categoria: {categoria.tipo}, transação: {tipo}")
+                messages.error(request, error_msg)
+                return redirect('adicionar_transacao')
             
             if transacao_existente:
                 # Atualizar transação existente
@@ -341,8 +464,14 @@ def adicionar_transacao(request, transacao_id=None):
                     messages.error(request, f"Não é possível editar transação de {transacao_existente.data.strftime('%m/%Y')} pois o mês já foi fechado.")
                     return redirect('transacoes')
                 
-                # Se a data foi alterada, verificar se o novo mês também não está fechado
+                # Se a data foi alterada, verificar validações
                 if data and data != transacao_existente.data:
+                    # Verificar se a data não é futura
+                    if validar_data_futura(data):
+                        messages.error(request, ErrorMessages.DATA_FUTURA)
+                        return redirect('transacoes')
+                    
+                    # Verificar se o novo mês não está fechado
                     mes_fechado_novo, _ = verificar_mes_fechado(data, transacao_existente.conta)
                     if mes_fechado_novo:
                         messages.error(request, f"Não é possível alterar data para {data.strftime('%m/%Y')} pois o mês já foi fechado.")
@@ -387,7 +516,7 @@ def adicionar_transacao(request, transacao_id=None):
         except TransacaoServiceError as e:
             logger.error(f"Erro do serviço ao criar transação: {str(e)}")
             messages.error(request, str(e))
-            return redirect('adicionar_transacao')
+            return redirect('transacao_create')
             
         except Exception as e:
             logger.error(f"Erro inesperado ao criar transação: {str(e)}")
@@ -646,6 +775,7 @@ def adicionar_despesa_parcelada(request):
         total_parcelas = request.POST.get('total_parcelas')
         data_primeira_parcela = request.POST.get('data_primeira_parcela')
         intervalo = request.POST.get('intervalo')
+        intervalo_dias = request.POST.get('intervalo_dias')  # Capturar intervalo_dias
         
         # Debug: Log dos valores recebidos
         logger.info(f"DEBUG - Valores recebidos do formulário:")
@@ -656,6 +786,7 @@ def adicionar_despesa_parcelada(request):
         logger.info(f"  total_parcelas: '{total_parcelas}'")
         logger.info(f"  data_primeira_parcela: '{data_primeira_parcela}'")
         logger.info(f"  intervalo: '{intervalo}'")
+        logger.info(f"  intervalo_dias: '{intervalo_dias}'")
         
         if all([descricao, valor_total, categoria_id, conta_id, total_parcelas, data_primeira_parcela, intervalo]):
             try:
@@ -665,6 +796,17 @@ def adicionar_despesa_parcelada(request):
                 valor_total_decimal = parse_currency_value(valor_total)
                 logger.info(f"DEBUG - Valor convertido: {valor_total_decimal}")
                 
+                # Validar intervalo_dias se necessário
+                intervalo_dias_int = None
+                if intervalo == 'personalizado':
+                    if not intervalo_dias:
+                        messages.error(request, 'Número de dias é obrigatório para intervalo personalizado.')
+                        raise ValueError('Intervalo de dias não informado para tipo personalizado')
+                    intervalo_dias_int = int(intervalo_dias)
+                    if intervalo_dias_int < 1 or intervalo_dias_int > 365:
+                        messages.error(request, 'Número de dias deve estar entre 1 e 365.')
+                        raise ValueError('Intervalo de dias inválido')
+                
                 despesa_parcelada = DespesaParcelada.objects.create(
                     descricao=descricao,
                     valor_total=valor_total_decimal,
@@ -673,9 +815,10 @@ def adicionar_despesa_parcelada(request):
                     responsavel=responsavel or '',
                     numero_parcelas=int(total_parcelas),
                     data_primeira_parcela=datetime.strptime(data_primeira_parcela, '%Y-%m-%d').date(),
-                    intervalo_tipo=intervalo
+                    intervalo_tipo=intervalo,
+                    intervalo_dias=intervalo_dias_int  # Incluir intervalo_dias
                 )
-                logger.info(f"DEBUG - DespesaParcelada criada: ID={despesa_parcelada.id}, valor_total={despesa_parcelada.valor_total}")
+                logger.info(f"DEBUG - DespesaParcelada criada: ID={despesa_parcelada.id}, valor_total={despesa_parcelada.valor_total}, intervalo_dias={despesa_parcelada.intervalo_dias}")
                 despesa_parcelada.gerar_parcelas()
                 logger.info(f"DEBUG - Parcelas geradas para despesa {despesa_parcelada.id}")
                 messages.success(request, f'Despesa parcelada criada com sucesso! {total_parcelas} parcelas foram geradas.')
@@ -1975,29 +2118,42 @@ def registro_view(request):
         cpf = request.POST.get('cpf', '').strip()
         cnpj = request.POST.get('cnpj', '').strip()
         
+        # Preparar contexto para preservar dados em caso de erro
+        context = {
+            'form_data': {
+                'username': username,
+                'email': email,
+                'tipo_pessoa': tipo_pessoa,
+                'cpf': cpf,
+                'cnpj': cnpj,
+            }
+        }
+        
         # Validações básicas
         if password1 != password2:
             messages.error(request, 'As senhas não coincidem.')
-            return render(request, 'financas/registro.html')
+            return render(request, 'financas/registro.html', context)
         
         # Validar senha forte
         try:
             django_validar_senha_forte(password1)
         except ValidationError as e:
             messages.error(request, str(e))
-            return render(request, 'financas/registro.html')
+            return render(request, 'financas/registro.html', context)
         
         # Verificar se usuário já existe
         if CustomUser.objects.filter(username=username).exists():
             messages.error(request, 'Nome de usuário já existe.')
-            return render(request, 'financas/registro.html')
+            return render(request, 'financas/registro.html', context)
         
         # Verificar email apenas para usuários verificados
         existing_email_user = CustomUser.objects.filter(email=email).first()
         if existing_email_user:
             if existing_email_user.email_verificado:
                 messages.error(request, 'Email já está em uso por um usuário verificado.')
-                return render(request, 'financas/registro.html')
+                # Limpar apenas o campo email do contexto
+                context['form_data']['email'] = ''
+                return render(request, 'financas/registro.html', context)
             else:
                 # Remove usuário não verificado com mesmo email
                 existing_email_user.delete()
@@ -2009,11 +2165,13 @@ def registro_view(request):
         if tipo_pessoa == 'fisica':
             if not cpf:
                 messages.error(request, 'CPF é obrigatório para pessoa física.')
-                return render(request, 'financas/registro.html')
+                return render(request, 'financas/registro.html', context)
             
             if not validar_cpf(cpf):
                 messages.error(request, 'CPF inválido.')
-                return render(request, 'financas/registro.html')
+                # Limpar apenas o campo CPF do contexto
+                context['form_data']['cpf'] = ''
+                return render(request, 'financas/registro.html', context)
             
             # Verificar se CPF já existe
             cpf_limpo = re.sub(r'\D', '', cpf)
@@ -2021,7 +2179,8 @@ def registro_view(request):
             if existing_user:
                 if existing_user.email_verificado:
                     messages.error(request, 'CPF já está cadastrado e verificado.')
-                    return render(request, 'financas/registro.html')
+                    context['form_data']['cpf'] = ''
+                    return render(request, 'financas/registro.html', context)
                 else:
                     # Remove usuário não verificado para permitir novo registro
                     existing_user.delete()
@@ -2030,11 +2189,13 @@ def registro_view(request):
         elif tipo_pessoa == 'juridica':
             if not cnpj:
                 messages.error(request, 'CNPJ é obrigatório para pessoa jurídica.')
-                return render(request, 'financas/registro.html')
+                return render(request, 'financas/registro.html', context)
             
             if not validar_cnpj(cnpj):
                 messages.error(request, 'CNPJ inválido.')
-                return render(request, 'financas/registro.html')
+                # Limpar apenas o campo CNPJ do contexto
+                context['form_data']['cnpj'] = ''
+                return render(request, 'financas/registro.html', context)
             
             # Verificar se CNPJ já existe
             cnpj_limpo = re.sub(r'\D', '', cnpj)
@@ -2042,7 +2203,8 @@ def registro_view(request):
             if existing_user:
                 if existing_user.email_verificado:
                     messages.error(request, 'CNPJ já está cadastrado e verificado.')
-                    return render(request, 'financas/registro.html')
+                    context['form_data']['cnpj'] = ''
+                    return render(request, 'financas/registro.html', context)
                 else:
                     # Remove usuário não verificado para permitir novo registro
                     existing_user.delete()
@@ -2061,7 +2223,7 @@ def registro_view(request):
             if existing_schema_user:
                 if existing_schema_user.email_verificado:
                     messages.error(request, 'Já existe um usuário verificado com este documento.')
-                    return render(request, 'financas/registro.html')
+                    return render(request, 'financas/registro.html', context)
                 else:
                     # Remove usuário não verificado para permitir novo registro
                     existing_schema_user.delete()
@@ -2126,7 +2288,7 @@ def registro_view(request):
         except Exception as e:
             logger.error(f"Erro ao criar usuário: {str(e)}")
             messages.error(request, 'Erro interno. Tente novamente.')
-            return render(request, 'financas/registro.html')
+            return render(request, 'financas/registro.html', context)
     
     return render(request, 'financas/registro.html')
 

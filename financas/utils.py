@@ -1,5 +1,51 @@
 from decimal import Decimal, InvalidOperation
 import re
+from django.utils import timezone
+import pytz
+from functools import lru_cache
+from datetime import datetime, timedelta
+
+# Cache do fuso horário para melhor performance
+@lru_cache(maxsize=1)
+def _get_fuso_brasil():
+    """Retorna o fuso horário do Brasil com cache para performance."""
+    return pytz.timezone('America/Sao_Paulo')
+
+def get_data_atual_brasil():
+    """
+    Obtém a data atual no fuso horário do Brasil (America/Sao_Paulo).
+    
+    Esta função centraliza a lógica de obtenção da data atual considerando
+    o fuso horário brasileiro, incluindo horário de verão automático.
+    
+    Returns:
+        date: Data atual no fuso horário do Brasil
+    
+    Performance:
+        - Usa cache para o fuso horário (lru_cache)
+        - Evita recriação desnecessária do objeto timezone
+    """
+    fuso_brasil = _get_fuso_brasil()
+    return timezone.localtime(timezone.now(), fuso_brasil).date()
+
+def validar_data_futura(data):
+    """
+    Valida se uma data não é futura considerando o fuso horário do Brasil.
+    
+    Args:
+        data (date): Data a ser validada
+        
+    Returns:
+        bool: True se a data é futura, False caso contrário
+        
+    Raises:
+        None: Função não levanta exceções
+    """
+    if not data:
+        return False
+    
+    hoje_brasil = get_data_atual_brasil()
+    return data > hoje_brasil
 
 def parse_currency_value(value_str):
     """

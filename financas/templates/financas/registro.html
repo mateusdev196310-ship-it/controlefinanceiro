@@ -32,6 +32,18 @@
         box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
     }
     
+    .form-control.error {
+        border-color: #dc3545;
+        box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.25);
+    }
+    
+    .error-message {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+        display: block;
+    }
+    
     .btn-primary {
         background-color: #007bff;
         border-color: #007bff;
@@ -123,12 +135,12 @@
         
         <div class="form-group">
             <label for="username">Nome de Usuário:</label>
-            <input type="text" class="form-control" id="username" name="username" required autocomplete="off" value="">
+            <input type="text" class="form-control" id="username" name="username" required autocomplete="off" value="{% if form_data %}{{ form_data.username|default:'' }}{% elif request.method == 'POST' %}{{ request.POST.username|default:'' }}{% else %}{% endif %}">
         </div>
         
         <div class="form-group">
             <label for="email">Email:</label>
-            <input type="email" class="form-control" id="email" name="email" required autocomplete="off" value="">
+            <input type="email" class="form-control" id="email" name="email" required autocomplete="off" value="{% if form_data %}{{ form_data.email|default:'' }}{% elif request.method == 'POST' %}{{ request.POST.email|default:'' }}{% else %}{% endif %}">
         </div>
         
         <div class="form-group">
@@ -146,25 +158,25 @@
             <label for="tipo_pessoa">Tipo de Pessoa:</label>
             <select class="form-control" id="tipo_pessoa" name="tipo_pessoa" required>
                 <option value="">Selecione...</option>
-                <option value="fisica">Pessoa Física</option>
-                <option value="juridica">Pessoa Jurídica</option>
+                <option value="fisica" {% if form_data.tipo_pessoa == 'fisica' %}selected{% elif request.method == 'POST' and request.POST.tipo_pessoa == 'fisica' %}selected{% endif %}>Pessoa Física</option>
+                <option value="juridica" {% if form_data.tipo_pessoa == 'juridica' %}selected{% elif request.method == 'POST' and request.POST.tipo_pessoa == 'juridica' %}selected{% endif %}>Pessoa Jurídica</option>
             </select>
         </div>
         
         <!-- Campos para Pessoa Física -->
-        <div id="campos-fisica" class="pessoa-fields">
+        <div id="campos-fisica" class="pessoa-fields {% if form_data.tipo_pessoa == 'fisica' %}active{% elif request.method == 'POST' and request.POST.tipo_pessoa == 'fisica' %}active{% endif %}">
             <div class="form-group">
                 <label for="cpf">CPF:</label>
-                <input type="text" class="form-control" id="cpf" name="cpf" placeholder="000.000.000-00">
+                <input type="text" class="form-control" id="cpf" name="cpf" placeholder="000.000.000-00" value="{% if form_data %}{{ form_data.cpf|default:'' }}{% elif request.method == 'POST' %}{{ request.POST.cpf|default:'' }}{% else %}{% endif %}">
             </div>
         </div>
         
         <!-- Campos para Pessoa Jurídica -->
-        <div id="campos-juridica" class="pessoa-fields">
+        <div id="campos-juridica" class="pessoa-fields {% if form_data.tipo_pessoa == 'juridica' %}active{% elif request.method == 'POST' and request.POST.tipo_pessoa == 'juridica' %}active{% endif %}">
             <div class="form-group">
                 <label for="cnpj">CNPJ:</label>
                 <div style="display: flex; gap: 10px;">
-                    <input type="text" class="form-control" id="cnpj" name="cnpj" placeholder="00.000.000/0000-00">
+                    <input type="text" class="form-control" id="cnpj" name="cnpj" placeholder="00.000.000/0000-00" value="{% if form_data %}{{ form_data.cnpj|default:'' }}{% elif request.method == 'POST' %}{{ request.POST.cnpj|default:'' }}{% else %}{% endif %}">
                     <button type="button" id="buscar-cnpj" class="btn btn-secondary">Buscar</button>
                 </div>
                 <div class="loading" id="loading-cnpj">Buscando dados...</div>
@@ -172,12 +184,12 @@
             
             <div class="form-group">
                 <label for="razao_social">Razão Social:</label>
-                <input type="text" class="form-control" id="razao_social" name="razao_social" readonly>
+                <input type="text" class="form-control" id="razao_social" name="razao_social" readonly value="{% if form_data %}{{ form_data.razao_social|default:'' }}{% elif request.method == 'POST' %}{{ request.POST.razao_social|default:'' }}{% else %}{% endif %}">
             </div>
             
             <div class="form-group">
                 <label for="nome_fantasia">Nome Fantasia:</label>
-                <input type="text" class="form-control" id="nome_fantasia" name="nome_fantasia" readonly>
+                <input type="text" class="form-control" id="nome_fantasia" name="nome_fantasia" readonly value="{% if form_data %}{{ form_data.nome_fantasia|default:'' }}{% elif request.method == 'POST' %}{{ request.POST.nome_fantasia|default:'' }}{% else %}{% endif %}">
             </div>
         </div>
         
@@ -190,17 +202,20 @@
 </div>
 
 <script>
-// Limpar todos os campos quando a página carregar
+// Inicializar campos baseado no estado atual
 document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('username').value = '';
-    document.getElementById('email').value = '';
-    document.getElementById('password1').value = '';
-    document.getElementById('password2').value = '';
-    document.getElementById('tipo_pessoa').value = '';
-    document.getElementById('cpf').value = '';
-    document.getElementById('cnpj').value = '';
-    document.getElementById('razao_social').value = '';
-    document.getElementById('nome_fantasia').value = '';
+    // Não limpar campos - preservar valores do POST
+    // Aplicar máscaras nos campos que já têm valores
+    const cpfField = document.getElementById('cpf');
+    const cnpjField = document.getElementById('cnpj');
+    
+    if (cpfField.value) {
+        cpfField.dispatchEvent(new Event('input'));
+    }
+    
+    if (cnpjField.value) {
+        cnpjField.dispatchEvent(new Event('input'));
+    }
 });
 
 // Controlar exibição dos campos baseado no tipo de pessoa
@@ -278,6 +293,93 @@ document.getElementById('buscar-cnpj').addEventListener('click', function() {
         });
 });
 
+// Função para marcar campo com erro
+function marcarCampoComErro(campoId, mensagem) {
+    const campo = document.getElementById(campoId);
+    if (campo) {
+        campo.classList.add('error');
+        
+        // Remover mensagem de erro existente
+        const errorExistente = campo.parentNode.querySelector('.error-message');
+        if (errorExistente) {
+            errorExistente.remove();
+        }
+        
+        // Adicionar nova mensagem de erro
+        if (mensagem) {
+            const errorDiv = document.createElement('small');
+            errorDiv.className = 'error-message';
+            errorDiv.textContent = mensagem;
+            campo.parentNode.appendChild(errorDiv);
+        }
+    }
+}
+
+// Função para limpar erro do campo
+function limparErroCampo(campoId) {
+    const campo = document.getElementById(campoId);
+    if (campo) {
+        campo.classList.remove('error');
+        const errorMsg = campo.parentNode.querySelector('.error-message');
+        if (errorMsg) {
+            errorMsg.remove();
+        }
+    }
+}
+
+// Marcar campos com erro baseado nas mensagens do Django
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar mensagens de erro e marcar campos correspondentes
+    const alertas = document.querySelectorAll('.alert-danger');
+    alertas.forEach(function(alerta) {
+        const mensagem = alerta.textContent.trim();
+        
+        if (mensagem.includes('Email já está em uso') || mensagem.includes('Email')) {
+            marcarCampoComErro('email', 'Email inválido ou já em uso');
+        }
+        if (mensagem.includes('CPF')) {
+            marcarCampoComErro('cpf', 'CPF inválido ou já cadastrado');
+        }
+        if (mensagem.includes('CNPJ')) {
+            marcarCampoComErro('cnpj', 'CNPJ inválido ou já cadastrado');
+        }
+        if (mensagem.includes('Nome de usuário')) {
+            marcarCampoComErro('username', 'Nome de usuário já existe');
+        }
+        if (mensagem.includes('senhas não coincidem')) {
+            marcarCampoComErro('password2', 'Senhas não coincidem');
+        }
+        if (mensagem.includes('senha') && mensagem.includes('caracteres')) {
+            marcarCampoComErro('password1', 'Senha deve ter pelo menos 8 caracteres');
+        }
+    });
+});
+
+// Limpar erros quando usuário começar a digitar
+document.getElementById('email').addEventListener('input', function() {
+    limparErroCampo('email');
+});
+
+document.getElementById('username').addEventListener('input', function() {
+    limparErroCampo('username');
+});
+
+document.getElementById('cpf').addEventListener('input', function() {
+    limparErroCampo('cpf');
+});
+
+document.getElementById('cnpj').addEventListener('input', function() {
+    limparErroCampo('cnpj');
+});
+
+document.getElementById('password1').addEventListener('input', function() {
+    limparErroCampo('password1');
+});
+
+document.getElementById('password2').addEventListener('input', function() {
+    limparErroCampo('password2');
+});
+
 // Validação de senhas
 document.getElementById('registroForm').addEventListener('submit', function(e) {
     const password1 = document.getElementById('password1').value;
@@ -285,13 +387,13 @@ document.getElementById('registroForm').addEventListener('submit', function(e) {
     
     if (password1 !== password2) {
         e.preventDefault();
-        alert('As senhas não coincidem!');
+        marcarCampoComErro('password2', 'As senhas não coincidem');
         return;
     }
     
     if (password1.length < 8) {
         e.preventDefault();
-        alert('A senha deve ter pelo menos 8 caracteres!');
+        marcarCampoComErro('password1', 'A senha deve ter pelo menos 8 caracteres');
         return;
     }
 });

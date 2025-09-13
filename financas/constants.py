@@ -54,7 +54,7 @@ class ErrorMessages:
     CONTA_INEXISTENTE = 'A conta especificada não existe.'
     TRANSACAO_INEXISTENTE = 'A transação especificada não existe.'
     TIPO_INVALIDO = 'Tipo de transação inválido.'
-    DATA_FUTURA = 'A data não pode ser no futuro.'
+    DATA_FUTURA = 'Não é permitido registrar uma transação em uma data futura.'
     DESCRICAO_VAZIA = 'A descrição não pode estar vazia.'
     SALDO_INSUFICIENTE = 'Saldo insuficiente para esta operação.'
     CATEGORIA_NOME_OBRIGATORIO = 'Nome da categoria é obrigatório.'

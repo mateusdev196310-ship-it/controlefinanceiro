@@ -212,7 +212,22 @@ debug_*.py
 relatorio_teste_*.json
 *.md
 
-# Scripts de desenvolvimento
+# Scripts específicos de teste e manutenção do projeto
+add_remaining_despesa_fields.py
+clear_migrations.py
+drop_financas_tables.py
+excluir_contas_receber.py
+melhorar_exclusao_conta.py
+refatorar_contas_receber.py
+verificar_tenant_ids.py
+verificar_transacoes_futuras.py
+test_db_connection.py
+test_boolean_conversion.py
+test_settings_fix.py
+limpar_dados_automatico_agora.py
+debug_render_env.py
+
+# Scripts de desenvolvimento (padrões gerais)
 check_*.py
 fix_*.py
 create_*.py
