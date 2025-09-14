@@ -1211,6 +1211,7 @@ def transferir_dados_conta(request, conta_origem_id):
 def relatorios(request):
     from datetime import datetime, timedelta
     from django.db.models import Q
+    from .utils import get_data_atual_brasil
     
     # Obter parâmetros dos filtros
     periodo = request.GET.get('periodo', 'mes_atual')
@@ -1218,8 +1219,8 @@ def relatorios(request):
     data_inicio_param = request.GET.get('data_inicio')
     data_fim_param = request.GET.get('data_fim')
     
-    # Definir datas baseadas no período selecionado
-    hoje = datetime.now().date()
+    # Definir datas baseadas no período selecionado usando fuso horário do Brasil
+    hoje = get_data_atual_brasil()
     
     if periodo == 'hoje':
         data_inicio = hoje
@@ -1455,7 +1456,7 @@ def fechamento_mensal(request):
                 # Verificar se é fechamento antecipado
                 import calendar
                 ultimo_dia_mes_fechamento = calendar.monthrange(ano, mes)[1]
-                data_fechamento_atual = datetime.now().date()
+                data_fechamento_atual = get_data_atual_brasil()
                 eh_fechamento_antecipado_post = (
                     ano == data_fechamento_atual.year and 
                     mes == data_fechamento_atual.month and 
