@@ -16,6 +16,7 @@ from django.urls import reverse
 from datetime import datetime, timedelta
 from dateutil.relativedelta import relativedelta
 import json
+import pytz
 from decimal import Decimal
 import calendar
 import time
@@ -1519,7 +1520,7 @@ def fechamento_mensal(request):
                         eh_parcial=eh_fechamento_antecipado_post,
                         data_inicio_periodo=data_inicio,
                         data_fim_periodo=data_fim_real,
-                        data_fechamento=datetime.now()
+                        data_fechamento=datetime.now(pytz.timezone('America/Sao_Paulo'))
                     )
                     
                     # Atualizar saldo da conta manualmente após fechamento
@@ -1541,7 +1542,7 @@ def fechamento_mensal(request):
     config = ConfiguracaoFechamento.get_configuracao()
     
     # Dados do mês atual e anterior para exibição
-    hoje = datetime.now()
+    hoje = datetime.now(pytz.timezone('America/Sao_Paulo'))
     
     # Sempre mostrar o mês atual
     mes_atual = hoje.month
