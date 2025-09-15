@@ -1335,11 +1335,26 @@ def relatorios(request):
             data_atual = fim_semana + timedelta(days=1)
             
     else:  # mensal (padrão)
-        # Tentar usar fechamentos mensais primeiro
-        fechamentos = FechamentoMensal.objects.filter(fechado=True).order_by('ano', 'mes')[:12]
+        # CORREÇÃO: Sempre incluir o mês atual, mesmo quando há fechamentos
+        fechamentos = FechamentoMensal.objects.filter(fechado=True).order_by('ano', 'mes')
+        
+        # Data atual para cálculos
+        hoje = get_data_atual_brasil()
+        mes_atual = hoje.month
+        ano_atual = hoje.year
         
         if fechamentos.exists() and periodo in ['mes_atual', 'ultimos_30_dias']:
-            for fechamento in fechamentos:
+            # Usar fechamentos até o mês anterior + calcular mês atual
+            fechamentos_anteriores = fechamentos.filter(
+                Q(ano__lt=ano_atual) | Q(ano=ano_atual, mes__lt=mes_atual)
+            ).order_by('ano', 'mes')
+            
+            # Pegar os últimos 11 fechamentos para deixar espaço para o mês atual
+            if fechamentos_anteriores.count() > 11:
+                fechamentos_anteriores = fechamentos_anteriores[fechamentos_anteriores.count()-11:]
+            
+            # Adicionar fechamentos anteriores
+            for fechamento in fechamentos_anteriores:
                 meses = [
                     '', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
                     'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
@@ -1348,6 +1363,52 @@ def relatorios(request):
                     'data': f"{meses[fechamento.mes]}/{fechamento.ano}",
                     'saldo': float(fechamento.saldo_final)
                 })
+            
+            # SEMPRE calcular e incluir o mês atual
+            data_inicio_mes = hoje.replace(day=1)
+            
+            # Saldo inicial do mês (último fechamento ou saldo das contas)
+            saldo_inicial_mes = 0
+            if fechamentos_anteriores.exists():
+                # Somar saldos finais de todas as contas do último fechamento
+                ultimo_fechamento_mes = fechamentos_anteriores.last().mes
+                ultimo_fechamento_ano = fechamentos_anteriores.last().ano
+                fechamentos_ultimo_mes = FechamentoMensal.objects.filter(
+                    ano=ultimo_fechamento_ano,
+                    mes=ultimo_fechamento_mes,
+                    fechado=True
+                )
+                saldo_inicial_mes = sum(float(f.saldo_final) for f in fechamentos_ultimo_mes)
+            else:
+                # Se não há fechamentos, usar saldo atual das contas
+                contas = Conta.objects.all()
+                saldo_inicial_mes = sum(float(conta.saldo) for conta in contas)
+            
+            # Transações do mês atual
+            receitas_mes_atual = Transacao.objects.filter(
+                tipo='receita',
+                data__gte=data_inicio_mes,
+                data__lte=hoje
+            ).aggregate(total=Sum('valor'))['total'] or 0
+            
+            despesas_mes_atual = Transacao.objects.filter(
+                tipo='despesa',
+                data__gte=data_inicio_mes,
+                data__lte=hoje
+            ).aggregate(total=Sum('valor'))['total'] or 0
+            
+            saldo_mes_atual = saldo_inicial_mes + float(receitas_mes_atual) - float(despesas_mes_atual)
+            
+            # Adicionar mês atual
+            meses = [
+                '', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+                'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+            ]
+            
+            dados_evolucao.append({
+                'data': f"{meses[mes_atual]}/{ano_atual}",
+                'saldo': saldo_mes_atual
+            })
         else:
             # Evolução mensal baseada em transações
             saldo_acumulado = 0
