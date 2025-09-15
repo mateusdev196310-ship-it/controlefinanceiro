@@ -8,7 +8,7 @@ from decimal import Decimal
 from django.db import transaction
 from django.db.models import Sum, Q
 from django.utils import timezone
-from .utils import validar_data_futura
+from .utils import validar_data_futura, get_data_atual_brasil
 from datetime import datetime, date, timedelta
 from dateutil.relativedelta import relativedelta
 import logging
@@ -150,7 +150,7 @@ class ContaService:
             
             # Se não especificado, usar mês/ano atual
             if mes is None or ano is None:
-                hoje = timezone.now().date()
+                hoje = get_data_atual_brasil()
                 mes = mes or hoje.month
                 ano = ano or hoje.year
             
@@ -292,7 +292,7 @@ class TransacaoService:
                     descricao=descricao,
                     valor=valor,
                     tipo=tipo,
-                    data=data or timezone.now().date(),
+                    data=data or get_data_atual_brasil(),
                     categoria=categoria_obj
                 )
                 

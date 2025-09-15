@@ -29,7 +29,7 @@ from .services import ContaService, TransacaoService
 from .constants import TipoTransacao, SuccessMessages, ErrorMessages
 from .exceptions import ContaServiceError, TransacaoServiceError
 from .logging_config import get_logger
-from .utils import parse_currency_value, validar_data_futura
+from .utils import parse_currency_value, validar_data_futura, get_data_atual_brasil
 
 logger = get_logger(__name__)
 
@@ -53,7 +53,7 @@ def dashboard(request):
         ).order_by('-data', '-id')[:10]
         
         # Data atual para cálculos mensais
-        hoje = timezone.now().date()
+        hoje = get_data_atual_brasil()
         
         # Obter resumo financeiro consolidado de todas as contas
         resumos_contas = []
@@ -204,7 +204,7 @@ def transacoes(request):
         
         # Se não há filtros de data, aplicar filtro padrão dos últimos 30 dias
         if not filtros['data_inicio'] and not filtros['data_fim'] and not any(request.GET.values()):
-            data_fim = timezone.now().date()
+            data_fim = get_data_atual_brasil()
             data_inicio = data_fim - timedelta(days=30)
             filtros['data_inicio'] = data_inicio.strftime('%Y-%m-%d')
             filtros['data_fim'] = data_fim.strftime('%Y-%m-%d')
@@ -947,7 +947,7 @@ def criar_conta(request):
                 valor=saldo_inicial,
                 categoria=categoria_saldo,
                 tipo='receita',
-                data=timezone.now().date(),
+                data=get_data_atual_brasil(),
                 responsavel='Sistema',
                 conta=conta
             )
@@ -1019,7 +1019,7 @@ def contas(request):
                 valor=saldo_inicial,
                 categoria=categoria_saldo,
                 tipo='receita',
-                data=timezone.now().date(),
+                data=get_data_atual_brasil(),
                 responsavel='Sistema',
                 conta=conta
             )
@@ -1747,7 +1747,7 @@ def executar_fechamento_automatico(request):
             'message': 'Fechamento automático não está habilitado nas configurações.'
         })
     
-    hoje = timezone.now().date()
+    hoje = get_data_atual_brasil()
     
     # Determinar qual mês fechar baseado nas configurações
     if config.permitir_fechamento_apenas_mes_anterior:
@@ -1894,7 +1894,7 @@ def compartilhar_whatsapp(request):
     """
     try:
         # Data atual para cálculos
-        hoje = timezone.now().date()
+        hoje = get_data_atual_brasil()
         
         # Obter resumo financeiro consolidado
         total_receitas = Decimal('0.00')
@@ -2692,7 +2692,7 @@ def api_resumo_financeiro(request):
     
     try:
         # Calcular resumo financeiro do usuário
-        hoje = timezone.now().date()
+        hoje = get_data_atual_brasil()
         
         # Obter todas as transações (sem filtro de usuário por enquanto)
         transacoes = Transacao.objects.all()
@@ -2734,7 +2734,7 @@ def api_transacoes_por_categoria(request):
         return JsonResponse({'error': 'Método não permitido'}, status=405)
     
     try:
-        hoje = timezone.now().date()
+        hoje = get_data_atual_brasil()
         
         # Obter transações do mês atual agrupadas por categoria
         transacoes = Transacao.objects.filter(
@@ -2764,7 +2764,7 @@ def api_evolucao_saldo(request):
         return JsonResponse({'error': 'Método não permitido'}, status=405)
     
     try:
-        hoje = timezone.now().date()
+        hoje = get_data_atual_brasil()
         
         # Obter dados dos últimos 6 meses
         dados_evolucao = []
