@@ -174,4 +174,23 @@ class Command(BaseCommand):
                 self.stdout.write(f'🗑️  Removendo fechamento: {meses[fechamento.mes]}/{fechamento.ano}')
                 fechamento.delete()
         
-        self.stdout.write('\n✅ SIMULAÇÃO CONCLUÍDA - A correção deve resolver o problema em produção!')
+        self.stdout.write(self.style.SUCCESS('=== SIMULAÇÃO DE DADOS DO GRÁFICO ==='))  
+        self.stdout.write('Verificando se há duplicação de meses no gráfico de evolução do saldo...')
+        
+        # Verificar se há meses duplicados nos dados de evolução
+        meses_encontrados = {}
+        duplicados = []
+        
+        for item in dados_evolucao:
+            if item['data'] in meses_encontrados:
+                duplicados.append(item['data'])
+                self.stdout.write(f"⚠️ DUPLICADO: {item['data']} (valores: {meses_encontrados[item['data']]} e {item['saldo']})")
+            else:
+                meses_encontrados[item['data']] = item['saldo']
+        
+        if duplicados:
+            self.stdout.write(f"❌ Encontrados {len(duplicados)} meses duplicados: {', '.join(duplicados)}")
+        else:
+            self.stdout.write("✅ Nenhum mês duplicado encontrado - a correção funcionou!")
+            
+        self.stdout.write(self.style.SUCCESS('\n✅ SIMULAÇÃO CONCLUÍDA - A correção deve resolver o problema em produção!'))

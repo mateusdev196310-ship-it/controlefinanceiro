@@ -1414,7 +1414,25 @@ def relatorios(request):
             saldo_acumulado = 0
             data_atual = data_inicio.replace(day=1)  # Primeiro dia do mês
             
+            # Criar um conjunto para rastrear meses já processados
+            meses_processados = set()
+            
             while data_atual <= data_fim:
+                # Gerar uma chave única para o mês/ano
+                mes_ano_key = f"{data_atual.month}-{data_atual.year}"
+                
+                # Verificar se este mês já foi processado
+                if mes_ano_key in meses_processados:
+                    # Se já processamos este mês, avançamos para o próximo
+                    if data_atual.month == 12:
+                        data_atual = data_atual.replace(year=data_atual.year + 1, month=1)
+                    else:
+                        data_atual = data_atual.replace(month=data_atual.month + 1)
+                    continue
+                
+                # Marcar este mês como processado
+                meses_processados.add(mes_ano_key)
+                
                 # Último dia do mês
                 if data_atual.month == 12:
                     fim_mes = data_atual.replace(year=data_atual.year + 1, month=1, day=1) - timedelta(days=1)
@@ -1458,6 +1476,13 @@ def relatorios(request):
                 
                 if data_atual > data_fim:
                     break
+    
+    # Adicionar log para depuração do problema de duplicação de meses
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Dados de evolução gerados: {len(dados_evolucao)} pontos")
+    for i, item in enumerate(dados_evolucao):
+        logger.info(f"Ponto {i+1}: {item['data']} = {item['saldo']}")
     
     # Serializar dados para JSON (necessário para os gráficos)
     dados_categorias_json = json.dumps(dados_categorias)
