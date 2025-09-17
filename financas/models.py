@@ -306,15 +306,16 @@ class Categoria(models.Model):
         ('ambos', 'Ambos'),
     ]
     
-    nome = models.CharField(max_length=100, unique=True)
+    nome = models.CharField(max_length=100, db_index=True)  # Apenas índice, sem unique
     cor = models.CharField(max_length=20, default='#6c757d')  # Cor padrão cinza
     tipo = models.CharField(max_length=10, choices=TIPO_CHOICES, default='ambos')
-    tenant_id = models.IntegerField(null=True, blank=True, help_text="ID do tenant (usuário) para isolamento de dados")
+    tenant_id = models.IntegerField(null=True, blank=True, help_text="ID do tenant (usuário) para isolamento de dados", db_index=True)  # Adicionado índice
     
     objects = TenantManager()
     
     class Meta:
         ordering = ['nome']
+        # Sem unique_together ou constraints
     
     def clean(self):
         from django.core.exceptions import ValidationError
@@ -576,8 +577,7 @@ class Conta(models.Model):
     
     def atualizar_saldo(self):
         """
-        Atualiza o saldo da conta baseado nas transações após o último fechamento mensal.
-        Se não houver fechamento, considera todas as transações.
+        Atualiza o saldo da conta baseado em todas as transações.
         
         Returns:
             Decimal: O novo saldo da conta
@@ -588,29 +588,16 @@ class Conta(models.Model):
         logger = logging.getLogger(__name__)
         
         try:
-            # Buscar último fechamento mensal
-            ultimo_fechamento = self.fechamentomensal_set.filter(
-                fechado=True
-            ).order_by('-ano', '-mes').first()
+            # Considerar todas as transações
+            saldo_base = Decimal('0.00')
+            transacoes_query = self.transacao_set.all()
             
-            if ultimo_fechamento:
-                # Se há fechamento, usar saldo final do fechamento como base
-                saldo_base = ultimo_fechamento.saldo_final
-                
-                # Considerar apenas transações após o fechamento
-                data_limite = ultimo_fechamento.data_fim_periodo or ultimo_fechamento.criado_em.date()
-                transacoes_query = self.transacao_set.filter(data__gt=data_limite)
-            else:
-                # Se não há fechamento, considerar todas as transações
-                saldo_base = Decimal('0.00')
-                transacoes_query = self.transacao_set.all()
-            
-            # Calcular receitas após fechamento (todas as transações, independente do status pago)
+            # Calcular receitas (todas as transações, independente do status pago)
             receitas = transacoes_query.filter(
                 tipo=TipoTransacao.RECEITA
             ).aggregate(total=Sum('valor'))['total'] or Decimal('0.00')
             
-            # Calcular despesas após fechamento (todas as transações, independente do status pago)
+            # Calcular despesas (todas as transações, independente do status pago)
             despesas = transacoes_query.filter(
                 tipo=TipoTransacao.DESPESA
             ).aggregate(total=Sum('valor'))['total'] or Decimal('0.00')
@@ -637,128 +624,141 @@ class Conta(models.Model):
             logger.error(f"Erro ao atualizar saldo da conta {self.nome}: {str(e)}")
             raise CustomValidationError(f"Erro ao atualizar saldo: {str(e)}")
 
+# Modelo para armazenar o fechamento mensal automático
 class FechamentoMensal(models.Model):
-    ano = models.IntegerField()
-    mes = models.IntegerField()
-    saldo_inicial = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    saldo_final = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_receitas = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    total_despesas = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    fechado = models.BooleanField(default=False)
-    eh_parcial = models.BooleanField(default=False, help_text="Indica se foi fechamento antes do fim do mês")
-    data_inicio_periodo = models.DateField(null=True, blank=True, help_text="Data de início do período considerado")
-    data_fim_periodo = models.DateField(null=True, blank=True, help_text="Data de fim do período considerado")
-    data_fechamento = models.DateTimeField(blank=True, null=True)
-    criado_em = models.DateTimeField(auto_now_add=True)
+    """
+    Modelo para armazenar o fechamento mensal automático.
+    Registra o saldo final de cada mês para cada conta.
+    """
     conta = models.ForeignKey(Conta, on_delete=models.CASCADE)
+    mes = models.IntegerField(help_text="Mês do fechamento (1-12)")
+    ano = models.IntegerField(help_text="Ano do fechamento")
+    saldo_inicial = models.DecimalField(
+        max_digits=FormatConfig.MAX_DIGITS,
+        decimal_places=FormatConfig.DECIMAL_PLACES,
+        default=Decimal('0.00'),
+        help_text="Saldo inicial do mês"
+    )
+    total_receitas = models.DecimalField(
+        max_digits=FormatConfig.MAX_DIGITS,
+        decimal_places=FormatConfig.DECIMAL_PLACES,
+        default=Decimal('0.00'),
+        help_text="Total de receitas no mês"
+    )
+    total_despesas = models.DecimalField(
+        max_digits=FormatConfig.MAX_DIGITS,
+        decimal_places=FormatConfig.DECIMAL_PLACES,
+        default=Decimal('0.00'),
+        help_text="Total de despesas no mês"
+    )
+    saldo_final = models.DecimalField(
+        max_digits=FormatConfig.MAX_DIGITS,
+        decimal_places=FormatConfig.DECIMAL_PLACES,
+        default=Decimal('0.00'),
+        help_text="Saldo final do mês"
+    )
+    data_inicio_periodo = models.DateField(null=True, blank=True, help_text="Data de início do período")
+    data_fim_periodo = models.DateField(null=True, blank=True, help_text="Data de fim do período")
+    data_fechamento = models.DateTimeField(null=True, blank=True, help_text="Data e hora do fechamento")
+    fechado = models.BooleanField(default=True, help_text="Indica se o mês está fechado")
+    tenant_id = models.IntegerField(null=True, blank=True, help_text="ID do tenant (usuário) para isolamento de dados", db_index=True)
+    
+    objects = TenantManager()
     
     class Meta:
-        unique_together = [('conta', 'ano', 'mes')]
-        ordering = ['-ano', '-mes']
+        ordering = ['ano', 'mes', 'conta']
+        unique_together = [('conta', 'mes', 'ano')]
+        verbose_name = 'Fechamento Mensal'
+        verbose_name_plural = 'Fechamentos Mensais'
     
     def __str__(self):
-        meses = [
-            '', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
-        ]
-        return f"Fechamento {meses[self.mes]} {self.ano} - {self.conta.nome}"
-
-class ConfiguracaoFechamento(models.Model):
-    """
-    Modelo para configurações de fechamento mensal.
-    """
-    # Configurações de fechamento automático
-    fechamento_automatico_ativo = models.BooleanField(
-        default=False,
-        help_text="Ativa o fechamento automático no primeiro dia do mês"
-    )
-    
-    # Configurações de restrições
-    permitir_fechamento_apenas_mes_anterior = models.BooleanField(
-        default=True,
-        help_text="Permite fechamento apenas do mês anterior no dia 1"
-    )
-    
-    # Configurações de notificação
-    notificar_fechamento_automatico = models.BooleanField(
-        default=True,
-        help_text="Envia notificação quando fechamento automático é executado"
-    )
-    
-    # Configurações de período de graça
-    dias_graca_fechamento = models.IntegerField(
-        default=0,
-        help_text="Dias de graça após o dia 1 para permitir fechamento do mês anterior"
-    )
-    
-    # Metadados
-    criado_em = models.DateTimeField(auto_now_add=True)
-    atualizado_em = models.DateTimeField(auto_now=True)
-    
-    class Meta:
-        verbose_name = "Configuração de Fechamento"
-        verbose_name_plural = "Configurações de Fechamento"
-    
-    def __str__(self):
-        return f"Configuração de Fechamento - Automático: {'Sim' if self.fechamento_automatico_ativo else 'Não'}"
+        return f"{self.conta.nome} - {self.mes}/{self.ano} - Saldo: {FormatConfig.CURRENCY_SYMBOL} {self.saldo_final}"
     
     @classmethod
-    def get_configuracao(cls):
+    def realizar_fechamento_automatico(cls):
         """
-        Retorna a configuração ativa ou cria uma padrão se não existir.
+        Realiza o fechamento automático para todas as contas.
+        Deve ser chamado no dia 1 de cada mês.
         """
-        config, created = cls.objects.get_or_create(
-            pk=1,
-            defaults={
-                'fechamento_automatico_ativo': False,
-                'permitir_fechamento_apenas_mes_anterior': True,
-                'notificar_fechamento_automatico': True,
-                'dias_graca_fechamento': 0,
-            }
-        )
-        return config
-    
-    def pode_fechar_mes(self, ano, mes):
-        """
-        Verifica se é permitido fechar um determinado mês baseado nas configurações.
+        from django.db.models import Sum
+        import logging
         
-        Args:
-            ano (int): Ano do fechamento
-            mes (int): Mês do fechamento
-            
-        Returns:
-            tuple: (pode_fechar: bool, motivo: str)
-        """
-        from datetime import date
+        logger = logging.getLogger(__name__)
+        hoje = timezone.now().date()
         
-        hoje = date.today()
+        # Verificar se é dia 1 do mês
+        if hoje.day != 1:
+            logger.info(f"Fechamento automático não executado - Hoje não é dia 1 (é dia {hoje.day})")
+            return False, "Fechamento automático só pode ser executado no dia 1 do mês."
         
-        # Se não há restrição, permite qualquer fechamento
-        if not self.permitir_fechamento_apenas_mes_anterior:
-            return True, "Fechamento permitido"
-        
-        # Calcular mês anterior
-        if hoje.month == 1:  # Janeiro
-            mes_anterior = 12
-            ano_anterior = hoje.year - 1
+        # Determinar mês e ano para fechamento (mês anterior)
+        if hoje.month == 1:
+            mes_fechamento = 12
+            ano_fechamento = hoje.year - 1
         else:
-            mes_anterior = hoje.month - 1
-            ano_anterior = hoje.year
+            mes_fechamento = hoje.month - 1
+            ano_fechamento = hoje.year
         
-        # Verifica se está tentando fechar o mês anterior (permitido durante todo o mês atual)
-        if ano == ano_anterior and mes == mes_anterior:
-            return True, "Fechamento do mês anterior permitido"
+        # Calcular período de fechamento
+        data_inicio = date(ano_fechamento, mes_fechamento, 1)
+        if mes_fechamento == 12:
+            data_fim = date(ano_fechamento + 1, 1, 1) - timedelta(days=1)
+        else:
+            data_fim = date(ano_fechamento, mes_fechamento + 1, 1) - timedelta(days=1)
         
-        # Verifica se está tentando fechar o mês atual (só permitido nos primeiros dias)
-        if ano == hoje.year and mes == hoje.month:
-            if hoje.day <= (1 + self.dias_graca_fechamento):
-                return True, "Fechamento do mês atual permitido nos primeiros dias"
-            else:
-                return False, f"Fechamento do mês atual só é permitido até o dia {1 + self.dias_graca_fechamento}"
+        # Processar cada conta
+        contas = Conta.objects.all()
+        fechamentos_realizados = []
         
-        # Qualquer outro caso não é permitido
-        return False, "Só é permitido fechar o mês anterior ou o mês atual nos primeiros dias"
-
+        for conta in contas:
+            # Verificar se já existe fechamento para esta conta/mês/ano
+            if cls.objects.filter(conta=conta, mes=mes_fechamento, ano=ano_fechamento).exists():
+                logger.info(f"Fechamento já existe para {conta.nome} - {mes_fechamento}/{ano_fechamento}")
+                continue
+            
+            # Buscar transações do período
+            transacoes = Transacao.objects.filter(
+                conta=conta,
+                data__gte=data_inicio,
+                data__lte=data_fim
+            )
+            
+            # Calcular receitas e despesas
+            receitas = transacoes.filter(tipo=TipoTransacao.RECEITA).aggregate(
+                total=Sum('valor'))['total'] or Decimal('0.00')
+            despesas = transacoes.filter(tipo=TipoTransacao.DESPESA).aggregate(
+                total=Sum('valor'))['total'] or Decimal('0.00')
+            
+            # Buscar fechamento anterior para saldo inicial
+            fechamento_anterior = cls.objects.filter(
+                conta=conta
+            ).filter(
+                models.Q(ano__lt=ano_fechamento) | 
+                models.Q(ano=ano_fechamento, mes__lt=mes_fechamento)
+            ).order_by('-ano', '-mes').first()
+            
+            saldo_inicial = fechamento_anterior.saldo_final if fechamento_anterior else Decimal('0.00')
+            saldo_final = saldo_inicial + receitas - despesas
+            
+            # Criar fechamento
+            fechamento = cls.objects.create(
+                conta=conta,
+                mes=mes_fechamento,
+                ano=ano_fechamento,
+                saldo_inicial=saldo_inicial,
+                total_receitas=receitas,
+                total_despesas=despesas,
+                saldo_final=saldo_final,
+                data_inicio_periodo=data_inicio,
+                data_fim_periodo=data_fim,
+                data_fechamento=timezone.now(),
+                fechado=True
+            )
+            
+            fechamentos_realizados.append(fechamento)
+            logger.info(f"Fechamento automático realizado: {conta.nome} - {mes_fechamento}/{ano_fechamento}")
+        
+        return True, fechamentos_realizados
 
 class ParcelaPlanejada(models.Model):
     """

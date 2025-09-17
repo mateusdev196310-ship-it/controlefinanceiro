@@ -23,10 +23,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+# Gerar uma nova chave secreta longa e aleatória para produção
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-q3i&$4h-)gesath0@4oo660!y3=or_8ss_w0j%#l211^5tz+7-')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config('DEBUG', default=False, cast=bool)
+
+# Garantir que a chave secreta seja forte em produção
+if not DEBUG and SECRET_KEY.startswith('django-insecure-'):
+    import secrets
+    print("AVISO: Usando uma chave secreta insegura em produção. Gere uma nova chave e configure-a como variável de ambiente.")
+    # Gerar uma chave forte como fallback (mas ainda é melhor configurar via variável de ambiente)
+    SECRET_KEY = ''.join(secrets.choice('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*(-_=+)') for i in range(50))
 
 # Configuração para logs detalhados em produção
 DEBUG_PROPAGATE_EXCEPTIONS = config('DEBUG_PROPAGATE_EXCEPTIONS', default=False, cast=bool)
@@ -42,6 +50,12 @@ CSRF_TRUSTED_ORIGINS = [
 
 # Configurações adicionais de segurança
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=not DEBUG, cast=bool)
+SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=not DEBUG, cast=bool)
+CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=not DEBUG, cast=bool)
+SECURE_HSTS_SECONDS = config('SECURE_HSTS_SECONDS', default=31536000, cast=int)  # 1 ano
+SECURE_HSTS_INCLUDE_SUBDOMAINS = config('SECURE_HSTS_INCLUDE_SUBDOMAINS', default=True, cast=bool)
+SECURE_HSTS_PRELOAD = config('SECURE_HSTS_PRELOAD', default=True, cast=bool)
 
 
 # Application definition

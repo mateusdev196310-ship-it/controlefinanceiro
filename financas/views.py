@@ -24,7 +24,7 @@ import logging
 import re
 import uuid
 
-from .models import Categoria, Transacao, Meta, DespesaParcelada, Conta, FechamentoMensal, ConfiguracaoFechamento, CustomUser, ParcelaPlanejada
+from .models import Categoria, Transacao, Meta, DespesaParcelada, Conta, FechamentoMensal, CustomUser, ParcelaPlanejada
 from .services import ContaService, TransacaoService
 from .constants import TipoTransacao, SuccessMessages, ErrorMessages
 from .exceptions import ContaServiceError, TransacaoServiceError
@@ -44,8 +44,15 @@ def dashboard(request):
     """
     Dashboard principal com resumo financeiro.
     Utiliza services para centralizar a lógica de negócio.
+    Verifica e executa fechamento automático no dia 1 de cada mês.
     """
     try:
+        # Verificar e executar fechamento automático se for dia 1
+        from .utils import verificar_e_executar_fechamento_automatico
+        fechamento_realizado, mensagem_fechamento = verificar_e_executar_fechamento_automatico()
+        if fechamento_realizado:
+            messages.success(request, f"Fechamento automático realizado com sucesso: {mensagem_fechamento}")
+        
         # Obter transações recentes ordenadas por data e horário de criação (mais recentes primeiro)
         # EXCLUINDO despesas parceladas para isolamento completo
         transacoes = Transacao.objects.select_related('categoria').filter(
@@ -125,11 +132,28 @@ def dashboard(request):
         mes_atual = meses[hoje.month - 1]
         ano_atual = hoje.year
         
+        # Determinar mês anterior para exibição
+        if hoje.month == 1:
+            mes_anterior_num = 12
+            ano_anterior = hoje.year - 1
+        else:
+            mes_anterior_num = hoje.month - 1
+            ano_anterior = hoje.year
+        
+        mes_anterior = meses[mes_anterior_num - 1]
+        
         # Verificar fechamentos do mês atual
         fechamentos_mes_atual = FechamentoMensal.objects.filter(
             mes=hoje.month,
             ano=hoje.year
         ).select_related('conta')
+        
+        # Obter saldo do mês anterior
+        from .utils import obter_fechamentos_por_periodo
+        fechamentos_mes_anterior = obter_fechamentos_por_periodo(mes_anterior_num, ano_anterior)
+        saldo_anterior = 0
+        if fechamentos_mes_anterior.exists():
+            saldo_anterior = fechamentos_mes_anterior.first().saldo_final
         
         # Preparar informações sobre fechamentos
         info_fechamentos = {
@@ -153,6 +177,9 @@ def dashboard(request):
             'movimentacao_mes': movimentacao_mes,
             'mes_atual': mes_atual,
             'ano_atual': ano_atual,
+            'mes_anterior': mes_anterior,
+            'ano_anterior': ano_anterior,
+            'saldo_anterior': saldo_anterior,
             'dados_categorias': dados_categorias,
             'dados_categorias_json': dados_categorias_json,
             'metas': metas,
@@ -189,13 +216,34 @@ def dashboard(request):
 def transacoes(request):
     """
     Lista transações com filtros usando TransacaoService.
-    Inclui paginação, totalizadores e filtro padrão dos últimos 30 dias.
+    Inclui paginação, totalizadores e filtro por mês/ano.
     """
     try:
+        # Obter parâmetros de filtro de mês/ano
+        mes = request.GET.get('mes')
+        ano = request.GET.get('ano')
+        
+        # Se mês/ano especificados, criar filtros de data correspondentes
+        if mes and ano:
+            mes = int(mes)
+            ano = int(ano)
+            data_inicio = datetime.date(ano, mes, 1)
+            if mes == 12:
+                data_fim = datetime.date(ano + 1, 1, 1) - datetime.timedelta(days=1)
+            else:
+                data_fim = datetime.date(ano, mes + 1, 1) - datetime.timedelta(days=1)
+            
+            # Converter para string no formato esperado pelo service
+            data_inicio_str = data_inicio.strftime('%Y-%m-%d')
+            data_fim_str = data_fim.strftime('%Y-%m-%d')
+        else:
+            data_inicio_str = request.GET.get('data_inicio')
+            data_fim_str = request.GET.get('data_fim')
+        
         # Extrair filtros da query string
         filtros = {
-            'data_inicio': request.GET.get('data_inicio'),
-            'data_fim': request.GET.get('data_fim'),
+            'data_inicio': data_inicio_str,
+            'data_fim': data_fim_str,
             'categoria_id': request.GET.get('categoria'),
             'tipo': request.GET.get('tipo'),
             'responsavel': request.GET.get('responsavel'),

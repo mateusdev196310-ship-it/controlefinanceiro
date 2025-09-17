@@ -32,8 +32,7 @@ urlpatterns = [
     path('contas/transferir-dados/<int:conta_origem_id>/', views.transferir_dados_conta, name='transferir_dados_conta'),
     path('relatorios/', views.relatorios, name='relatorios'),
 
-    path('fechamento-mensal/', views.fechamento_mensal, name='fechamento_mensal'),
-    path('fechamento-automatico/', views.executar_fechamento_automatico, name='fechamento_automatico'),
+    # Rotas de fechamento mensal removidas - agora o fechamento é automático
     path('test-filter/', views.test_filter, name='test_filter'),
     # API endpoints
     path('api/resumo-financeiro/', views.api_resumo_financeiro, name='api_resumo_financeiro'),

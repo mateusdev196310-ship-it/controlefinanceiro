@@ -963,14 +963,20 @@
                         </div>
                     </div>
                     <div class="col-md-3">
-                        <div class="d-flex flex-column flex-sm-row justify-content-center justify-content-md-end align-items-center mb-3 gap-2">
-                            <a href="{% url 'fechamento_mensal' %}" class="btn btn-primary btn-sm btn-fechamento-desktop w-100 w-sm-auto">
-                                <i class="fas fa-calendar-check"></i> 
-                                <span class="d-none d-sm-inline">Fechamento Mensal</span>
-                                <span class="d-sm-none">Fechamento</span>
-                            </a>
-                            <button id="btnCompartilharWhatsApp" class="btn btn-outline-success btn-sm btn-compartilhar-desktop w-100 w-sm-auto">
-                                <i class="fab fa-whatsapp"></i> 
+                         <div class="d-flex flex-column flex-sm-row justify-content-center justify-content-md-end align-items-center mb-3 gap-2">
+                             <!-- Informações de saldo do mês anterior -->
+                             <div class="card mb-4 w-100">
+                                 <div class="card-header bg-primary text-white">
+                                     <h5 class="mb-0">Informações do Mês Anterior</h5>
+                                 </div>
+                                 <div class="card-body">
+                                     <p class="mb-1"><strong>Mês/Ano:</strong> {{ mes_anterior }}/{{ ano_anterior }}</p>
+                                     <p class="mb-1"><strong>Saldo Final:</strong> R$ {{ saldo_anterior|floatformat:2 }}</p>
+                                     <p class="mb-0 text-muted small">Fechamento automático no dia 1</p>
+                                 </div>
+                             </div>
+                             <button id="btnCompartilharWhatsApp" class="btn btn-outline-success btn-sm btn-compartilhar-desktop w-100 w-sm-auto">
+                                 <i class="fab fa-whatsapp"></i> 
                                 <span class="d-none d-sm-inline">Compartilhar</span>
                                 <span class="d-sm-none">WhatsApp</span>
                             </button>

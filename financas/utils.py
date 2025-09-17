@@ -121,6 +121,80 @@ def verificar_mes_fechado(data, conta):
     except Exception as e:
         return False, f"Erro ao verificar fechamento: {str(e)}"
 
+# Funções utilitárias para fechamento mensal
+def verificar_fechamento_mensal(mes, ano):
+    """
+    Verifica se o mês já foi fechado.
+    
+    Args:
+        mes (int): Mês a verificar
+        ano (int): Ano a verificar
+        
+    Returns:
+        bool: True se o mês já foi fechado, False caso contrário
+    """
+    from .models import FechamentoMensal
+    
+    return FechamentoMensal.objects.filter(mes=mes, ano=ano).exists()
+
+def verificar_e_executar_fechamento_automatico():
+    """
+    Verifica se é dia 1 do mês e executa o fechamento automático se necessário.
+    Esta função deve ser chamada em cada acesso ao dashboard.
+    
+    Returns:
+        tuple: (bool, str) - (True, mensagem) se o fechamento foi realizado, (False, mensagem) caso contrário
+    """
+    from .models import FechamentoMensal
+    from django.utils import timezone
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    hoje = timezone.now().date()
+    
+    # Verificar se é dia 1 do mês
+    if hoje.day == 1:
+        # Determinar mês e ano para fechamento (mês anterior)
+        if hoje.month == 1:
+            mes_fechamento = 12
+            ano_fechamento = hoje.year - 1
+        else:
+            mes_fechamento = hoje.month - 1
+            ano_fechamento = hoje.year
+        
+        # Verificar se o mês anterior já foi fechado
+        if not verificar_fechamento_mensal(mes_fechamento, ano_fechamento):
+            logger.info(f"Executando fechamento automático para {mes_fechamento}/{ano_fechamento}")
+            return FechamentoMensal.realizar_fechamento_automatico()
+        else:
+            logger.info(f"Fechamento de {mes_fechamento}/{ano_fechamento} já realizado anteriormente")
+            return False, "Fechamento já realizado anteriormente."
+    
+    return False, "Hoje não é dia 1 do mês, fechamento automático não necessário."
+
+def obter_fechamentos_por_periodo(mes=None, ano=None):
+    """
+    Obtém os fechamentos mensais para um determinado período.
+    Se mês e ano não forem fornecidos, retorna todos os fechamentos.
+    
+    Args:
+        mes (int, optional): Mês a filtrar
+        ano (int, optional): Ano a filtrar
+        
+    Returns:
+        QuerySet: Fechamentos mensais filtrados
+    """
+    from .models import FechamentoMensal
+    
+    fechamentos = FechamentoMensal.objects.all().select_related('conta')
+    
+    if mes and ano:
+        fechamentos = fechamentos.filter(mes=mes, ano=ano)
+    elif ano:
+        fechamentos = fechamentos.filter(ano=ano)
+    
+    return fechamentos.order_by('ano', 'mes', 'conta__nome')
+
 def pode_editar_transacao(transacao):
     """
     Verifica se uma transação pode ser editada ou excluída.
