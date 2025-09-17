@@ -11,10 +11,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Adicionar o campo tenant_id à tabela FechamentoMensal
-        migrations.AddField(
-            model_name='fechamentomensal',
-            name='tenant_id',
-            field=models.IntegerField(blank=True, db_index=True, help_text='ID do tenant (usuário) para isolamento de dados', null=True),
-        ),
+        # Não adicionar o campo tenant_id novamente, pois já existe na migração 0011
+        # migrations.AddField(
+        #     model_name='fechamentomensal',
+        #     name='tenant_id',
+        #     field=models.IntegerField(blank=True, db_index=True, help_text='ID do tenant (usuário) para isolamento de dados', null=True),
+        # ),
     ]
