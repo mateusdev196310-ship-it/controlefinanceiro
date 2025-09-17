@@ -10,22 +10,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        # Adicionar uma operação RunSQL para verificar se a coluna tenant_id existe
-        # e removê-la se necessário antes de tentar adicioná-la novamente
-        migrations.RunSQL(
-            # SQL para verificar e remover a coluna se ela existir
-            """
-            DO $$
-            BEGIN
-                IF EXISTS (SELECT 1 FROM information_schema.columns 
-                          WHERE table_name = 'financas_fechamentomensal' AND column_name = 'tenant_id') THEN
-                    -- A coluna existe, não fazer nada pois já foi adicionada
-                    RAISE NOTICE 'A coluna tenant_id já existe na tabela financas_fechamentomensal';
-                END IF;
-            END
-            $$;
-            """,
-            # SQL de reversão (não faz nada)
-            "SELECT 1;"
-        ),
+        # Esta migração é uma correção para o problema de coluna duplicada
+        # Não precisa fazer nada no SQLite local, mas no PostgreSQL de produção
+        # vai evitar o erro de coluna duplicada
     ]
