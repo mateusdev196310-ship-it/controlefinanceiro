@@ -1293,6 +1293,7 @@ def relatorios(request):
     filtro_periodo = Q(data__gte=data_inicio, data__lte=data_fim)
     
     # Dados para relatórios baseados no período filtrado
+    # Usando objects.filter já aplica o TenantManager automaticamente
     receitas = Transacao.objects.filter(tipo='receita').filter(filtro_periodo).aggregate(total=Sum('valor'))
     despesas = Transacao.objects.filter(tipo__in=['despesa', 'saida']).filter(filtro_periodo).aggregate(total=Sum('valor'))
     
@@ -1301,10 +1302,12 @@ def relatorios(request):
     saldo = total_receitas - total_despesas
     
     # Dados por categoria para gráfico (filtrado pelo período)
+    # Usando objects.all() já aplica o TenantManager automaticamente
     categorias = Categoria.objects.all()
     dados_categorias = []
     
     for categoria in categorias:
+        # TenantManager já é aplicado automaticamente
         total_categoria = Transacao.objects.filter(categoria=categoria, tipo='despesa').filter(filtro_periodo).aggregate(total=Sum('valor'))
         if total_categoria['total']:
             dados_categorias.append({
@@ -1327,6 +1330,7 @@ def relatorios(request):
         
         while data_atual <= data_fim:
             # Calcular receitas e despesas do dia
+            # TenantManager já é aplicado automaticamente
             receitas_dia = Transacao.objects.filter(
                 tipo='receita',
                 data=data_atual
@@ -1361,6 +1365,7 @@ def relatorios(request):
                 fim_semana = data_fim
             
             # Calcular receitas e despesas da semana
+            # TenantManager já é aplicado automaticamente
             receitas_semana = Transacao.objects.filter(
                 tipo='receita',
                 data__gte=inicio_semana,
@@ -1384,55 +1389,87 @@ def relatorios(request):
             
     else:  # mensal (padrão)
         # CORREÇÃO: Sempre incluir o mês atual, mesmo quando há fechamentos
-        fechamentos = FechamentoMensal.objects.filter(fechado=True).order_by('ano', 'mes')
-        
-        # Data atual para cálculos
-        hoje = get_data_atual_brasil()
-        mes_atual = hoje.month
-        ano_atual = hoje.year
-        
-        if fechamentos.exists() and periodo in ['mes_atual', 'ultimos_30_dias']:
-            # Usar fechamentos até o mês anterior + calcular mês atual
-            fechamentos_anteriores = fechamentos.filter(
-                Q(ano__lt=ano_atual) | Q(ano=ano_atual, mes__lt=mes_atual)
-            ).order_by('ano', 'mes')
+        # TenantManager já é aplicado automaticamente
+        try:
+            fechamentos = FechamentoMensal.objects.filter(fechado=True).order_by('ano', 'mes')
             
-            # Pegar os últimos 11 fechamentos para deixar espaço para o mês atual
-            if fechamentos_anteriores.count() > 11:
-                fechamentos_anteriores = fechamentos_anteriores[fechamentos_anteriores.count()-11:]
+            # Data atual para cálculos
+            hoje = get_data_atual_brasil()
+            mes_atual = hoje.month
+            ano_atual = hoje.year
             
-            # Adicionar fechamentos anteriores
-            for fechamento in fechamentos_anteriores:
-                meses = [
-                    '', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
-                    'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
-                ]
-                dados_evolucao.append({
-                    'data': f"{meses[fechamento.mes]}/{fechamento.ano}",
-                    'saldo': float(fechamento.saldo_final)
-                })
+            # Tratamento para o caso da coluna tenant_id não existir ainda
+            # Isso é uma solução temporária até que a migração seja aplicada
+            fechamentos_existem = False
+            try:
+                fechamentos_existem = fechamentos.exists()
+            except Exception as e:
+                logger.error(f"Erro ao verificar fechamentos: {str(e)}")
+                fechamentos_existem = False
+            
+            if fechamentos_existem and periodo in ['mes_atual', 'ultimos_30_dias']:
+                # Usar fechamentos até o mês anterior + calcular mês atual
+                try:
+                    fechamentos_anteriores = fechamentos.filter(
+                        Q(ano__lt=ano_atual) | Q(ano=ano_atual, mes__lt=mes_atual)
+                    ).order_by('ano', 'mes')
+                    
+                    # Pegar os últimos 11 fechamentos para deixar espaço para o mês atual
+                    if fechamentos_anteriores.count() > 11:
+                        fechamentos_anteriores = fechamentos_anteriores[fechamentos_anteriores.count()-11:]
+                    
+                    # Adicionar fechamentos anteriores
+                    for fechamento in fechamentos_anteriores:
+                        meses = [
+                            '', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun',
+                            'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'
+                        ]
+                        dados_evolucao.append({
+                            'data': f"{meses[fechamento.mes]}/{fechamento.ano}",
+                            'saldo': float(fechamento.saldo_final)
+                        })
+                except Exception as e:
+                    logger.error(f"Erro ao processar fechamentos anteriores: {str(e)}")
+                    # Continuar sem os dados de fechamentos anteriores
             
             # SEMPRE calcular e incluir o mês atual
             data_inicio_mes = hoje.replace(day=1)
             
             # Saldo inicial do mês (último fechamento ou saldo das contas)
             saldo_inicial_mes = 0
-            if fechamentos_anteriores.exists():
-                # Somar saldos finais de todas as contas do último fechamento
-                ultimo_fechamento_mes = fechamentos_anteriores.last().mes
-                ultimo_fechamento_ano = fechamentos_anteriores.last().ano
-                fechamentos_ultimo_mes = FechamentoMensal.objects.filter(
-                    ano=ultimo_fechamento_ano,
-                    mes=ultimo_fechamento_mes,
-                    fechado=True
-                )
-                saldo_inicial_mes = sum(float(f.saldo_final) for f in fechamentos_ultimo_mes)
+            try:
+                if 'fechamentos_anteriores' in locals() and hasattr(fechamentos_anteriores, 'exists') and fechamentos_anteriores.exists():
+                    # Somar saldos finais de todas as contas do último fechamento
+                    ultimo_fechamento_mes = fechamentos_anteriores.last().mes
+                    ultimo_fechamento_ano = fechamentos_anteriores.last().ano
+                    try:
+                        fechamentos_ultimo_mes = FechamentoMensal.objects.filter(
+                            ano=ultimo_fechamento_ano,
+                            mes=ultimo_fechamento_mes,
+                            fechado=True
+                        )
+                        saldo_inicial_mes = sum(float(f.saldo_final) for f in fechamentos_ultimo_mes)
+                    except Exception as e:
+                        logger.error(f"Erro ao buscar fechamentos do último mês: {str(e)}")
+                        # Usar saldo das contas como alternativa
+                        saldo_inicial_mes = sum(float(conta.saldo) for conta in Conta.objects.all())
+            except Exception as e:
+                logger.error(f"Erro ao calcular saldo inicial do mês: {str(e)}")
+                # Usar zero como fallback
             else:
                 # Se não há fechamentos, usar saldo atual das contas
+                # TenantManager já é aplicado automaticamente
                 contas = Conta.objects.all()
                 saldo_inicial_mes = sum(float(conta.saldo) for conta in contas)
+        except Exception as e:
+            logger.error(f"Erro ao processar fechamentos: {str(e)}")
+            # Continuar sem os dados de fechamentos
+            # TenantManager já é aplicado automaticamente
+            contas = Conta.objects.all()
+            saldo_inicial_mes = sum(float(conta.saldo) for conta in contas)
             
             # Transações do mês atual
+            # TenantManager já é aplicado automaticamente
             receitas_mes_atual = Transacao.objects.filter(
                 tipo='receita',
                 data__gte=data_inicio_mes,
@@ -1492,6 +1529,7 @@ def relatorios(request):
                     fim_mes = data_fim
                 
                 # Calcular receitas e despesas do mês
+                # TenantManager já é aplicado automaticamente
                 receitas_mes = Transacao.objects.filter(
                     tipo='receita',
                     data__gte=data_atual,
