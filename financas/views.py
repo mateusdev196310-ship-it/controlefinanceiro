@@ -46,6 +46,191 @@ def dashboard(request):
     Utiliza services para centralizar a lógica de negócio.
     Verifica e executa fechamento automático no dia 1 de cada mês.
     """
+    # Verificar se deve usar o layout moderno
+    if request.GET.get('modern', False):
+        return dashboard_modern(request)
+    else:
+        return dashboard_original(request)
+        
+@login_required
+def dashboard_modern(request):
+    """
+    Versão moderna do dashboard com layout repaginado.
+    """
+    try:
+        # Verificar e executar fechamento automático se for dia 1
+        from .utils import verificar_e_executar_fechamento_automatico
+        fechamento_realizado, mensagem_fechamento = verificar_e_executar_fechamento_automatico()
+        if fechamento_realizado:
+            messages.success(request, f"Fechamento automático realizado com sucesso: {mensagem_fechamento}")
+        
+        # Obter transações recentes ordenadas por data e horário de criação (mais recentes primeiro)
+        ultimas_transacoes = Transacao.objects.select_related('categoria').filter(
+            despesa_parcelada__isnull=True
+        ).order_by('-data', '-id')[:10]
+        
+        # Data atual para cálculos mensais
+        hoje = get_data_atual_brasil()
+        mes_atual = datetime(hoje.year, hoje.month, 1)
+        
+        # Obter resumo financeiro consolidado de todas as contas
+        total_receitas = Decimal('0.00')
+        total_despesas = Decimal('0.00')
+        saldo_anterior_total = Decimal('0.00')
+        saldo_atual_total = Decimal('0.00')
+        
+        contas = Conta.objects.all()
+        
+        for conta in contas:
+            try:
+                resumo = ContaService.obter_resumo_financeiro(
+                    conta.id, 
+                    mes=hoje.month, 
+                    ano=hoje.year
+                )
+                
+                # Somar totais
+                total_receitas += resumo['receitas']
+                total_despesas += resumo['despesas']
+                saldo_anterior_total += resumo['saldo_anterior']
+                saldo_atual_total += resumo['saldo_atual']
+                
+            except ContaServiceError as e:
+                logger.error(f"Erro ao obter resumo da conta {conta.nome}: {str(e)}")
+                messages.error(request, f"Erro ao carregar dados da conta {conta.nome}")
+        
+        # Percentuais para estatísticas
+        percentual_receitas = 100
+        percentual_despesas = 100
+        if total_receitas > 0:
+            percentual_receitas = 100
+        if total_despesas > 0:
+            percentual_despesas = 100
+    
+        # Dados para gráficos de categorias (apenas do mês atual)
+        despesas_por_categoria = []
+        receitas_por_categoria = []
+        
+        categorias = Categoria.objects.all()
+        
+        # Processar despesas por categoria
+        total_despesas_categorias = Decimal('0.00')
+        for categoria in categorias:
+            # Despesas por categoria
+            total_categoria = Transacao.objects.filter(
+                categoria=categoria, 
+                tipo__in=TipoTransacao.get_expense_types(),
+                despesa_parcelada__isnull=True,
+                data__month=hoje.month,
+                data__year=hoje.year
+            ).aggregate(total=Sum('valor'))
+            
+            if total_categoria['total']:
+                total_despesas_categorias += total_categoria['total']
+                despesas_por_categoria.append({
+                    'nome': categoria.nome,
+                    'total': float(total_categoria['total']),
+                    'icone': categoria.icone,
+                    'cor': categoria.cor
+                })
+        
+        # Calcular percentuais para despesas
+        for categoria in despesas_por_categoria:
+            if total_despesas_categorias > 0:
+                categoria['percentual'] = (categoria['total'] / float(total_despesas_categorias)) * 100
+            else:
+                categoria['percentual'] = 0
+        
+        # Processar receitas por categoria
+        total_receitas_categorias = Decimal('0.00')
+        for categoria in categorias:
+            # Receitas por categoria
+            total_categoria = Transacao.objects.filter(
+                categoria=categoria, 
+                tipo=TipoTransacao.RECEITA,
+                data__month=hoje.month,
+                data__year=hoje.year
+            ).aggregate(total=Sum('valor'))
+            
+            if total_categoria['total']:
+                total_receitas_categorias += total_categoria['total']
+                receitas_por_categoria.append({
+                    'nome': categoria.nome,
+                    'total': float(total_categoria['total']),
+                    'icone': categoria.icone,
+                    'cor': categoria.cor
+                })
+        
+        # Calcular percentuais para receitas
+        for categoria in receitas_por_categoria:
+            if total_receitas_categorias > 0:
+                categoria['percentual'] = (categoria['total'] / float(total_receitas_categorias)) * 100
+            else:
+                categoria['percentual'] = 0
+        
+        # Metas
+        metas = []
+        for meta in Meta.objects.all():
+            valor_atual = Decimal('0.00')
+            # Lógica para calcular progresso da meta
+            percentual = 0
+            if meta.valor_meta > 0:
+                percentual = (valor_atual / meta.valor_meta) * 100
+            
+            metas.append({
+                'nome': meta.descricao,
+                'atual': valor_atual,
+                'meta': meta.valor_meta,
+                'percentual': percentual,
+                'cor': 'success' if percentual >= 100 else 'primary'
+            })
+        
+        # Nomes dos meses em português
+        meses = [
+            'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+        ]
+        
+        # Determinar mês anterior para exibição
+        if hoje.month == 1:
+            mes_anterior_num = 12
+            ano_anterior = hoje.year - 1
+        else:
+            mes_anterior_num = hoje.month - 1
+            ano_anterior = hoje.year
+        
+        mes_anterior = datetime(ano_anterior, mes_anterior_num, 1)
+        
+        context = {
+            'ultimas_transacoes': ultimas_transacoes,
+            'total_receitas': total_receitas,
+            'total_despesas': total_despesas,
+            'saldo_atual': saldo_atual_total,
+            'saldo_anterior': saldo_anterior_total,
+            'mes_atual': mes_atual,
+            'mes_anterior': mes_anterior,
+            'percentual_receitas': percentual_receitas,
+            'percentual_despesas': percentual_despesas,
+            'despesas_por_categoria': despesas_por_categoria,
+            'receitas_por_categoria': receitas_por_categoria,
+            'metas': metas,
+            'contas': contas,
+        }
+        
+        return render(request, 'financas/dashboard_modern.html', context)
+        
+    except Exception as e:
+        logger.error(f"Erro inesperado no dashboard moderno: {str(e)}")
+        messages.error(request, "Erro ao carregar o dashboard. Tente novamente.")
+        return redirect('dashboard')
+
+@login_required
+def dashboard_original(request):
+    """
+    Dashboard principal com resumo financeiro.
+    Utiliza services para centralizar a lógica de negócio.
+    Verifica e executa fechamento automático no dia 1 de cada mês.
+    """
     try:
         # Verificar e executar fechamento automático se for dia 1
         from .utils import verificar_e_executar_fechamento_automatico

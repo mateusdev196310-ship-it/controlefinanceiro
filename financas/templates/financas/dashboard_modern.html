@@ -1,0 +1,591 @@
+{% extends 'financas/base.html' %}
+{% load static %}
+{% load humanize %}
+{% load financas_filters %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estilos específicos para o dashboard */
+    .dashboard-header {
+        margin-bottom: var(--espaco-lg);
+    }
+    
+    .dashboard-title {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--cor-texto-principal);
+        margin: 0;
+    }
+    
+    .dashboard-subtitle {
+        font-size: 0.875rem;
+        color: var(--cor-texto-secundario);
+        margin-top: var(--espaco-xs);
+    }
+    
+    .dashboard-actions {
+        display: flex;
+        align-items: center;
+        gap: var(--espaco-md);
+    }
+    
+    .period-selector {
+        position: relative;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="dashboard-title">Dashboard Financeiro</h1>
+            <p class="dashboard-subtitle">Visão geral das suas finanças - {{ mes_atual|date:"F Y" }}</p>
+        </div>
+        <div class="dashboard-actions">
+            <div class="period-selector">
+                <button class="btn btn-outline" id="periodSelectorBtn">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    {{ mes_atual|date:"F Y" }}
+                    <i class="fas fa-chevron-down ms-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cards de estatísticas -->
+<div class="stats-grid">
+    <!-- Saldo Anterior -->
+    <div class="stat-card stat-card-saldo">
+        <div class="stat-card-header">
+            <span class="stat-card-label">Saldo Anterior</span>
+            <div class="stat-card-icon">
+                <i class="fas fa-wallet"></i>
+            </div>
+        </div>
+        <div class="stat-card-value">R$ {{ saldo_anterior|floatformat:2|intcomma }}</div>
+        <div class="stat-card-trend">
+            <span>{{ mes_anterior|date:"F Y" }}</span>
+        </div>
+    </div>
+    
+    <!-- Receitas -->
+    <div class="stat-card stat-card-receita">
+        <div class="stat-card-header">
+            <span class="stat-card-label">Receitas</span>
+            <div class="stat-card-icon">
+                <i class="fas fa-arrow-up"></i>
+            </div>
+        </div>
+        <div class="stat-card-value">R$ {{ total_receitas|floatformat:2|intcomma }}</div>
+        <div class="stat-card-trend trend-up">
+            <i class="fas fa-arrow-up"></i>
+            <span>{{ percentual_receitas|floatformat:1 }}% do planejado</span>
+        </div>
+    </div>
+    
+    <!-- Despesas -->
+    <div class="stat-card stat-card-despesa">
+        <div class="stat-card-header">
+            <span class="stat-card-label">Despesas</span>
+            <div class="stat-card-icon">
+                <i class="fas fa-arrow-down"></i>
+            </div>
+        </div>
+        <div class="stat-card-value">R$ {{ total_despesas|floatformat:2|intcomma }}</div>
+        <div class="stat-card-trend trend-down">
+            <i class="fas fa-arrow-down"></i>
+            <span>{{ percentual_despesas|floatformat:1 }}% do planejado</span>
+        </div>
+    </div>
+    
+    <!-- Saldo Atual -->
+    <div class="stat-card stat-card-economia">
+        <div class="stat-card-header">
+            <span class="stat-card-label">Saldo Atual</span>
+            <div class="stat-card-icon">
+                <i class="fas fa-coins"></i>
+            </div>
+        </div>
+        <div class="stat-card-value">R$ {{ saldo_atual|floatformat:2|intcomma }}</div>
+        <div class="stat-card-trend">
+            <span>Atualizado hoje</span>
+        </div>
+    </div>
+</div>
+
+<!-- Grid principal do dashboard -->
+<div class="dashboard-grid">
+    <!-- Gráfico de Despesas por Categoria -->
+    <div class="dashboard-grid-col-8">
+        <div class="dashboard-card card-grafico">
+            <div class="dashboard-card-header">
+                <h2 class="dashboard-card-title">
+                    <i class="fas fa-chart-pie"></i>
+                    Despesas por Categoria
+                </h2>
+                <div class="dashboard-card-actions">
+                    <button class="btn btn-sm btn-outline" id="toggleChartType">
+                        <i class="fas fa-exchange-alt"></i>
+                        Alternar Gráfico
+                    </button>
+                </div>
+            </div>
+            <div class="dashboard-card-body card-body-grafico">
+                <div class="chart-container">
+                    <canvas id="despesasPorCategoria"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Últimas Transações -->
+    <div class="dashboard-grid-col-4">
+        <div class="dashboard-card card-transacoes">
+            <div class="dashboard-card-header">
+                <h2 class="dashboard-card-title">
+                    <i class="fas fa-list"></i>
+                    Últimas Transações
+                </h2>
+                <div class="dashboard-card-actions">
+                    <a href="{% url 'transacoes' %}" class="btn btn-sm btn-outline">
+                        <i class="fas fa-eye"></i>
+                        Ver Todas
+                    </a>
+                </div>
+            </div>
+            <div class="dashboard-card-body card-body-transacoes">
+                <div class="table-container">
+                    <table class="table table-hover">
+                        <thead class="table-header-sticky">
+                            <tr>
+                                <th class="col-data">Data</th>
+                                <th class="col-descricao">Descrição</th>
+                                <th class="col-valor">Valor</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transacao in ultimas_transacoes %}
+                            <tr>
+                                <td>{{ transacao.data|date:"d/m" }}</td>
+                                <td>
+                                    {{ transacao.descricao }}
+                                    <div>
+                                        <span class="badge {% if transacao.tipo == 'R' %}badge-receita{% else %}badge-despesa{% endif %}">
+                                            {{ transacao.get_tipo_display }}
+                                        </span>
+                                    </div>
+                                </td>
+                                <td class="transaction-value {% if transacao.tipo == 'R' %}receita{% else %}despesa{% endif %}">
+                                    R$ {{ transacao.valor|floatformat:2 }}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center py-4">
+                                    <div class="empty-transactions">
+                                        <i class="fas fa-receipt opacity-50"></i>
+                                        <p>Nenhuma transação encontrada</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="dashboard-card-footer">
+                <a href="{% url 'transacao_create' %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i>
+                    Nova Transação
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Evolução Financeira -->
+    <div class="dashboard-grid-col-12">
+        <div class="dashboard-card">
+            <div class="dashboard-card-header">
+                <h2 class="dashboard-card-title">
+                    <i class="fas fa-chart-line"></i>
+                    Evolução Financeira
+                </h2>
+                <div class="dashboard-card-actions">
+                    <button class="btn btn-sm btn-outline" id="toggleEvolutionPeriod">
+                        <i class="fas fa-calendar"></i>
+                        Últimos 6 meses
+                    </button>
+                </div>
+            </div>
+            <div class="dashboard-card-body">
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="evolucaoFinanceira"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Resumo por Categoria -->
+    <div class="dashboard-grid-col-6">
+        <div class="dashboard-card">
+            <div class="dashboard-card-header">
+                <h2 class="dashboard-card-title">
+                    <i class="fas fa-tags"></i>
+                    Resumo por Categoria
+                </h2>
+                <div class="dashboard-card-actions">
+                    <div class="btn-group">
+                        <button class="btn btn-sm btn-outline active" id="btnDespesasCategorias">
+                            Despesas
+                        </button>
+                        <button class="btn btn-sm btn-outline" id="btnReceitasCategorias">
+                            Receitas
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="dashboard-card-body">
+                <div class="table-container">
+                    <table class="table table-hover" id="tabelaDespesasCategorias">
+                        <thead class="table-header-sticky">
+                            <tr>
+                                <th>Categoria</th>
+                                <th>Valor</th>
+                                <th>%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for categoria in despesas_por_categoria %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge badge-despesa me-2">
+                                            <i class="{{ categoria.icone|default:'fas fa-tag' }}"></i>
+                                        </span>
+                                        {{ categoria.nome }}
+                                    </div>
+                                </td>
+                                <td>R$ {{ categoria.total|floatformat:2|intcomma }}</td>
+                                <td>{{ categoria.percentual|floatformat:1 }}%</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center py-4">
+                                    <div class="empty-transactions">
+                                        <i class="fas fa-tags opacity-50"></i>
+                                        <p>Nenhuma despesa por categoria</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    
+                    <table class="table table-hover d-none" id="tabelaReceitasCategorias">
+                        <thead class="table-header-sticky">
+                            <tr>
+                                <th>Categoria</th>
+                                <th>Valor</th>
+                                <th>%</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for categoria in receitas_por_categoria %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <span class="badge badge-receita me-2">
+                                            <i class="{{ categoria.icone|default:'fas fa-tag' }}"></i>
+                                        </span>
+                                        {{ categoria.nome }}
+                                    </div>
+                                </td>
+                                <td>R$ {{ categoria.total|floatformat:2|intcomma }}</td>
+                                <td>{{ categoria.percentual|floatformat:1 }}%</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="3" class="text-center py-4">
+                                    <div class="empty-transactions">
+                                        <i class="fas fa-tags opacity-50"></i>
+                                        <p>Nenhuma receita por categoria</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Metas e Orçamentos -->
+    <div class="dashboard-grid-col-6">
+        <div class="dashboard-card">
+            <div class="dashboard-card-header">
+                <h2 class="dashboard-card-title">
+                    <i class="fas fa-bullseye"></i>
+                    Metas e Orçamentos
+                </h2>
+                <div class="dashboard-card-actions">
+                    <a href="#" class="btn btn-sm btn-outline">
+                        <i class="fas fa-cog"></i>
+                        Configurar
+                    </a>
+                </div>
+            </div>
+            <div class="dashboard-card-body">
+                <div class="progress-cards">
+                    {% for meta in metas %}
+                    <div class="progress-card">
+                        <div class="progress-header">
+                            <div class="progress-title">{{ meta.nome }}</div>
+                            <div class="progress-value">{{ meta.percentual|floatformat:0 }}%</div>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar bg-{{ meta.cor }}" role="progressbar" style="width: {{ meta.percentual }}%" 
+                                aria-valuenow="{{ meta.percentual }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div class="progress-footer">
+                            <div class="progress-current">R$ {{ meta.atual|floatformat:2|intcomma }}</div>
+                            <div class="progress-target">Meta: R$ {{ meta.meta|floatformat:2|intcomma }}</div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-state">
+                        <div class="empty-transactions">
+                            <i class="fas fa-bullseye opacity-50"></i>
+                            <p>Nenhuma meta configurada</p>
+                            <a href="#" class="btn btn-sm btn-primary mt-2">
+                                <i class="fas fa-plus"></i>
+                                Criar Meta
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Paginação -->
+<div class="pagination">
+    <a href="#" class="pagination-item disabled">
+        <i class="fas fa-chevron-left"></i>
+    </a>
+    <a href="#" class="pagination-item active">1</a>
+    <a href="#" class="pagination-item">2</a>
+    <a href="#" class="pagination-item">3</a>
+    <a href="#" class="pagination-item">
+        <i class="fas fa-chevron-right"></i>
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gráfico de Despesas por Categoria
+        const ctxDespesas = document.getElementById('despesasPorCategoria').getContext('2d');
+        const despesasChart = new Chart(ctxDespesas, {
+            type: 'doughnut',
+            data: {
+                labels: [{% for categoria in despesas_por_categoria %}"{{ categoria.nome }}",{% endfor %}],
+                datasets: [{
+                    data: [{% for categoria in despesas_por_categoria %}{{ categoria.total }},{% endfor %}],
+                    backgroundColor: [
+                        '#4361ee', '#3a0ca3', '#7209b7', '#f72585', '#4cc9f0',
+                        '#4895ef', '#560bad', '#480ca8', '#b5179e', '#3f37c9'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            font: {
+                                size: 12
+                            },
+                            padding: 20
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                const percentage = Math.round((value / total) * 100);
+                                return `${label}: R$ ${value.toFixed(2)} (${percentage}%)`;
+                            }
+                        }
+                    }
+                },
+                cutout: '60%'
+            }
+        });
+        
+        // Gráfico de Evolução Financeira
+        const ctxEvolucao = document.getElementById('evolucaoFinanceira').getContext('2d');
+        const evolucaoChart = new Chart(ctxEvolucao, {
+            type: 'line',
+            data: {
+                labels: ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun'],
+                datasets: [{
+                    label: 'Receitas',
+                    data: [12000, 13500, 12800, 14200, 15000, 14800],
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }, {
+                    label: 'Despesas',
+                    data: [10500, 11200, 10800, 12500, 13200, 12800],
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }, {
+                    label: 'Saldo',
+                    data: [1500, 2300, 2000, 1700, 1800, 2000],
+                    borderColor: '#4361ee',
+                    backgroundColor: 'rgba(67, 97, 238, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'R$ ' + value.toLocaleString('pt-BR');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Toggle entre tabelas de categorias
+        document.getElementById('btnDespesasCategorias').addEventListener('click', function() {
+            document.getElementById('tabelaDespesasCategorias').classList.remove('d-none');
+            document.getElementById('tabelaReceitasCategorias').classList.add('d-none');
+            this.classList.add('active');
+            document.getElementById('btnReceitasCategorias').classList.remove('active');
+        });
+        
+        document.getElementById('btnReceitasCategorias').addEventListener('click', function() {
+            document.getElementById('tabelaReceitasCategorias').classList.remove('d-none');
+            document.getElementById('tabelaDespesasCategorias').classList.add('d-none');
+            this.classList.add('active');
+            document.getElementById('btnDespesasCategorias').classList.remove('active');
+        });
+        
+        // Toggle tipo de gráfico
+        document.getElementById('toggleChartType').addEventListener('click', function() {
+            const currentType = despesasChart.config.type;
+            let newType = currentType === 'doughnut' ? 'bar' : 'doughnut';
+            
+            despesasChart.destroy();
+            
+            const newOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: newType === 'doughnut' ? 'right' : 'top',
+                        display: newType === 'doughnut'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const label = context.label || '';
+                                const value = context.raw || 0;
+                                if (newType === 'doughnut') {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = Math.round((value / total) * 100);
+                                    return `${label}: R$ ${value.toFixed(2)} (${percentage}%)`;
+                                } else {
+                                    return `R$ ${value.toFixed(2)}`;
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            
+            if (newType === 'bar') {
+                newOptions.scales = {
+                    x: {
+                        grid: {
+                            display: false
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return 'R$ ' + value.toLocaleString('pt-BR');
+                            }
+                        }
+                    }
+                };
+            } else {
+                newOptions.cutout = '60%';
+            }
+            
+            const newChart = new Chart(ctxDespesas, {
+                type: newType,
+                data: despesasChart.data,
+                options: newOptions
+            });
+            
+            despesasChart = newChart;
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,741 @@
+/* Dashboard Original CSS */
+:root {
+    /* Paleta de cores moderna e profissional */
+    --cor-fundo: #FAFBFC;
+    --cor-fundo-secundario: #F8F9FA;
+    --cor-card: #FFFFFF;
+    --cor-borda: #E5E7EB;
+    --cor-borda-hover: #D1D5DB;
+    --cor-texto-principal: #111827;
+    --cor-texto-secundario: #6B7280;
+    --cor-texto-terciario: #9CA3AF;
+    --cor-primaria: #3B82F6;
+    --cor-primaria-hover: #2563EB;
+    --cor-primaria-light: #EFF6FF;
+    --cor-receita: #10B981;
+    --cor-receita-light: #ECFDF5;
+    --cor-despesa: #EF4444;
+    --cor-despesa-light: #FEF2F2;
+    --cor-warning: #F59E0B;
+    --cor-warning-light: #FFFBEB;
+    --cor-saldo-anterior: #8B5CF6;
+    --cor-saldo-anterior-light: #F3F4F6;
+    
+    /* Sombras */
+    --sombra-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --sombra-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    --sombra-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --sombra-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    --sombra-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    
+    /* Transições */
+    --transicao-rapida: all 0.15s ease;
+    --transicao-media: all 0.3s ease;
+    --transicao-lenta: all 0.5s ease;
+    
+    /* Bordas */
+    --raio-sm: 6px;
+    --raio-md: 8px;
+    --raio-lg: 12px;
+    --raio-xl: 16px;
+}
+
+/* Estilos gerais */
+body {
+    background-color: var(--cor-fundo);
+    color: var(--cor-texto-principal);
+}
+
+/* User Menu e Avatar */
+.user-menu {
+    position: relative;
+}
+
+.user-menu-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: var(--raio-md);
+    transition: var(--transicao-rapida);
+}
+
+.user-menu-btn:hover {
+    background-color: var(--cor-fundo-secundario);
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: var(--cor-primaria-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--cor-primaria);
+}
+
+.user-avatar svg {
+    width: 24px;
+    height: 24px;
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.user-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cor-texto-principal);
+}
+
+.user-role {
+    font-size: 12px;
+    color: var(--cor-texto-secundario);
+}
+
+.user-dropdown {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    width: 220px;
+    background-color: var(--cor-card);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-md);
+    box-shadow: var(--sombra-lg);
+    padding: 8px 0;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: var(--transicao-rapida);
+}
+
+.user-dropdown.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.user-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    color: var(--cor-texto-principal);
+    text-decoration: none;
+    transition: var(--transicao-rapida);
+}
+
+.user-dropdown-item:hover {
+    background-color: var(--cor-fundo-secundario);
+}
+
+.user-dropdown-item svg {
+    width: 18px;
+    height: 18px;
+    color: var(--cor-texto-secundario);
+}
+
+.dropdown-divider {
+    height: 1px;
+    background-color: var(--cor-borda);
+    margin: 8px 0;
+}
+
+/* Cards de Resumo */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.stat-card {
+    background-color: var(--cor-card);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-xl);
+    padding: 24px;
+    transition: var(--transicao-media);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--sombra-lg);
+    border-color: var(--cor-borda-hover);
+}
+
+.stat-header {
+    display: flex;
+    justify-content: between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.stat-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--cor-texto-secundario);
+    margin-bottom: 8px;
+}
+
+.stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 8px;
+}
+
+.stat-card.receita .stat-value {
+    color: var(--cor-receita);
+}
+
+.stat-card.despesa .stat-value {
+    color: var(--cor-despesa);
+}
+
+.stat-card.saldo-anterior .stat-value {
+    color: var(--cor-saldo-anterior);
+}
+
+.stat-card.movimentacao .stat-value {
+    color: var(--cor-primaria);
+}
+
+.stat-subtitle {
+    font-size: 13px;
+    color: var(--cor-texto-terciario);
+    font-weight: 400;
+}
+
+.stat-icon {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    width: 48px;
+    height: 48px;
+    border-radius: var(--raio-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.1;
+}
+
+.stat-card.receita .stat-icon {
+    background-color: var(--cor-receita);
+}
+
+.stat-card.despesa .stat-icon {
+    background-color: var(--cor-despesa);
+}
+
+.stat-card.saldo-anterior .stat-icon {
+    background-color: var(--cor-saldo-anterior);
+}
+
+.stat-card.movimentacao .stat-icon {
+    background-color: var(--cor-primaria);
+}
+
+/* Grid Principal */
+.content-grid {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+/* Cards Gerais */
+.card {
+    background-color: var(--cor-card);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-xl);
+    overflow: hidden;
+    box-shadow: var(--sombra-xs);
+}
+
+.card-header {
+    padding: 24px 24px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--cor-texto-principal);
+}
+
+/* Botões Profissionais Melhorados */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: var(--raio-md);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: var(--transicao-rapida);
+    text-decoration: none;
+    border: none;
+    outline: none;
+}
+
+.btn-primary {
+    background-color: var(--cor-primaria);
+    color: white;
+    border: 1px solid var(--cor-primaria);
+}
+
+.btn-primary:hover {
+    background-color: var(--cor-primaria-hover);
+    border-color: var(--cor-primaria-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--sombra-sm);
+}
+
+.btn-secondary {
+    background-color: var(--cor-fundo-secundario);
+    border: 1px solid var(--cor-borda);
+    color: var(--cor-texto-secundario);
+}
+
+.btn-secondary:hover {
+    background-color: var(--cor-borda);
+    color: var(--cor-texto-principal);
+    transform: translateY(-1px);
+    box-shadow: var(--sombra-sm);
+}
+
+.btn-outline {
+    background-color: transparent;
+    border: 1px solid var(--cor-borda);
+    color: var(--cor-texto-secundario);
+}
+
+.btn-outline:hover {
+    background-color: var(--cor-fundo-secundario);
+    border-color: var(--cor-primaria);
+    color: var(--cor-primaria);
+}
+
+.btn-icon {
+    width: 16px;
+    height: 16px;
+    stroke-width: 2;
+}
+
+/* Filtros de Transações Originais */
+.transaction-filters {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--cor-borda);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.filter-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.filter-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--cor-texto-secundario);
+}
+
+.filter-chips {
+    display: flex;
+    gap: 8px;
+}
+
+.filter-chip {
+    padding: 6px 14px;
+    border: 1px solid var(--cor-borda);
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--cor-texto-secundario);
+    background-color: var(--cor-card);
+    cursor: pointer;
+    transition: var(--transicao-rapida);
+}
+
+.filter-chip:hover {
+    border-color: var(--cor-primaria);
+    color: var(--cor-primaria);
+}
+
+.filter-chip.active {
+    background-color: var(--cor-primaria);
+    border-color: var(--cor-primaria);
+    color: white;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-md);
+    background-color: var(--cor-fundo-secundario);
+    min-width: 200px;
+}
+
+.search-box input {
+    border: none;
+    background: none;
+    outline: none;
+    font-size: 13px;
+    color: var(--cor-texto-principal);
+    flex: 1;
+}
+
+.search-box input::placeholder {
+    color: var(--cor-texto-terciario);
+}
+
+.search-icon {
+    width: 16px;
+    height: 16px;
+    color: var(--cor-texto-terciario);
+}
+
+/* Tabela de Transações */
+.transactions-card {
+    padding: 0;
+}
+
+.transactions-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.transactions-table th {
+    background-color: var(--cor-fundo-secundario);
+    padding: 16px 24px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--cor-texto-secundario);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--cor-borda);
+}
+
+.transactions-table td {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--cor-borda);
+    font-size: 14px;
+    color: var(--cor-texto-principal);
+}
+
+.transactions-table tbody tr:hover {
+    background-color: var(--cor-fundo-secundario);
+}
+
+.transactions-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.transaction-description {
+    font-weight: 500;
+}
+
+.transaction-date {
+    color: var(--cor-texto-secundario);
+}
+
+.transaction-value {
+    font-weight: 600;
+    text-align: right;
+}
+
+.transaction-value.receita {
+    color: var(--cor-receita);
+}
+
+.transaction-value.despesa {
+    color: var(--cor-despesa);
+}
+
+/* Badge */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: capitalize;
+}
+
+.badge.receita {
+    background-color: var(--cor-receita-light);
+    color: var(--cor-receita);
+}
+
+.badge.despesa {
+    background-color: var(--cor-despesa-light);
+    color: var(--cor-despesa);
+}
+
+/* Gráfico Maior */
+.chart-card {
+    padding: 24px;
+    text-align: center;
+}
+
+.chart-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 32px;
+}
+
+.chart-visual {
+    width: 300px;
+    height: 300px;
+    border-radius: 50%;
+    background: conic-gradient(
+        var(--cor-receita) 0deg 144deg,
+        var(--cor-despesa) 144deg 288deg,
+        var(--cor-warning) 288deg 360deg
+    );
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--sombra-lg);
+}
+
+.chart-visual::before {
+    content: '';
+    width: 180px;
+    height: 180px;
+    background-color: var(--cor-card);
+    border-radius: 50%;
+    position: absolute;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+.chart-center {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+}
+
+.chart-total {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--cor-texto-principal);
+    margin-bottom: 8px;
+}
+
+.chart-label {
+    font-size: 14px;
+    color: var(--cor-texto-secundario);
+    font-weight: 500;
+}
+
+.chart-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.legend-color {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+}
+
+.legend-color.receita {
+    background-color: var(--cor-receita);
+}
+
+.legend-color.despesa {
+    background-color: var(--cor-despesa);
+}
+
+.legend-color.outros {
+    background-color: var(--cor-warning);
+}
+
+/* Contas */
+.accounts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.account-card {
+    background-color: var(--cor-card);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-xl);
+    padding: 24px;
+    transition: var(--transicao-media);
+    cursor: pointer;
+}
+
+.account-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--sombra-md);
+    border-color: var(--cor-primaria);
+}
+
+.account-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+}
+
+.account-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--cor-texto-principal);
+    margin-bottom: 4px;
+}
+
+.account-bank {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    color: var(--cor-texto-secundario);
+}
+
+.bank-logo {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+}
+
+.bank-logo-placeholder {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: var(--cor-primaria);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.account-balance {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--cor-primaria);
+    margin-top: 8px;
+}
+
+/* Botão Adicionar Conta Melhorado */
+.add-account-card {
+    border: 2px dashed var(--cor-borda);
+    background-color: var(--cor-fundo-secundario);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--cor-texto-secundario);
+    font-weight: 500;
+    font-size: 14px;
+    transition: var(--transicao-media);
+    padding: 24px;
+    min-height: auto;
+}
+
+.add-account-card:hover {
+    border-color: var(--cor-primaria);
+    color: var(--cor-primaria);
+    background-color: var(--cor-primaria-light);
+    transform: translateY(-2px);
+}
+
+.add-icon {
+    width: 20px;
+    height: 20px;
+    stroke-width: 2;
+}
+
+/* Responsividade */
+@media (max-width: 1024px) {
+    .content-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+    
+    .chart-visual {
+        width: 250px;
+        height: 250px;
+    }
+    
+    .chart-visual::before {
+        width: 150px;
+        height: 150px;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        padding: 20px;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .accounts-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .chart-visual {
+        width: 200px;
+        height: 200px;
+    }
+    
+    .chart-visual::before {
+        width: 120px;
+        height: 120px;
+    }
+    
+    .transaction-filters {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+    
+    .search-box {
+        min-width: 100%;
+    }
+}

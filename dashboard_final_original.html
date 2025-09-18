@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Financeiro Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Paleta de cores moderna e profissional */
+            --cor-fundo: #FAFBFC;
+            --cor-fundo-secundario: #F8F9FA;
+            --cor-card: #FFFFFF;
+            --cor-borda: #E5E7EB;
+            --cor-borda-hover: #D1D5DB;
+            --cor-texto-principal: #111827;
+            --cor-texto-secundario: #6B7280;
+            --cor-texto-terciario: #9CA3AF;
+            --cor-primaria: #3B82F6;
+            --cor-primaria-hover: #2563EB;
+            --cor-primaria-light: #EFF6FF;
+            --cor-receita: #10B981;
+            --cor-receita-light: #ECFDF5;
+            --cor-despesa: #EF4444;
+            --cor-despesa-light: #FEF2F2;
+            --cor-warning: #F59E0B;
+            --cor-warning-light: #FFFBEB;
+            --cor-saldo-anterior: #8B5CF6;
+            --cor-saldo-anterior-light: #F3F4F6;
+            
+            /* Sombras */
+            --sombra-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --sombra-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            --sombra-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --sombra-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --sombra-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            
+            /* Transições */
+            --transicao-rapida: all 0.15s ease;
+            --transicao-media: all 0.3s ease;
+            --transicao-lenta: all 0.5s ease;
+            
+            /* Bordas */
+            --raio-sm: 6px;
+            --raio-md: 8px;
+            --raio-lg: 12px;
+            --raio-xl: 16px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--cor-fundo);
+            color: var(--cor-texto-principal);
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Layout Principal */
+        .app-layout {
+            display: flex;
+            min-height: 100vh;
+            background-color: var(--cor-fundo);
+        }
+        
+        /* Sidebar Melhorada */
+        .sidebar {
+            width: 280px;
+            height: 100vh;
+            background-color: var(--cor-card);
+            border-right: 1px solid var(--cor-borda);
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--sombra-sm);
+        }
+        
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--cor-primaria);
+        }
+        
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--cor-primaria), var(--cor-primaria-hover));
+            border-radius: var(--raio-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 16px;
+        }
+        
+        .sidebar-nav {
+            flex: 1;
+            padding: 24px 0;
+            overflow-y: auto;
+        }
+        
+        .nav-section {
+            margin-bottom: 32px;
+        }
+        
+        .nav-section-title {
+            padding: 0 24px 8px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--cor-texto-terciario);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .nav-menu {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 24px;
+            color: var(--cor-texto-secundario);
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+            transition: var(--transicao-rapida);
+            position: relative;
+        }
+        
+        .nav-item:hover {
+            background-color: var(--cor-fundo-secundario);
+            color: var(--cor-texto-principal);
+        }
+        
+        .nav-item.active {
+            background-color: var(--cor-primaria-light);
+            color: var(--cor-primaria);
+            font-weight: 600;
+        }
+        
+        .nav-item.active::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background-color: var(--cor-primaria);
+        }
+        
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            stroke-width: 2;
+        }
+        
+        /* Conteúdo Principal */
+        .main-wrapper {
+            flex: 1;
+            margin-left: 280px;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        .main-header {
+            background-color: var(--cor-card);
+            border-bottom: 1px solid var(--cor-borda);
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: var(--sombra-xs);
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+        }
+        
+        /* Seletor de Mês */
+        .month-selector {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .month-dropdown {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            background-color: var(--cor-card);
+            border: 2px solid var(--cor-borda);
+            border-radius: var(--raio-lg);
+            cursor: pointer;
+            transition: var(--transicao-rapida);
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--cor-texto-principal);
+            min-width: 160px;
+        }
+        
+        .month-dropdown:hover {
+            border-color: var(--cor-primaria);
+            box-shadow: var(--sombra-sm);
+        }
+        
+        .month-dropdown.open {
+            border-color: var(--cor-primaria);
+            box-shadow: var(--sombra-md);
+        }
+        
+        .dropdown-arrow {
+            width: 20px;
+            height: 20px;
+            transition: var(--transicao-rapida);
+        }
+        
+        .month-dropdown.open .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+        
+        .month-options {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--raio-lg);
+            box-shadow: var(--sombra-lg);
+            z-index: 1000;
+            margin-top: 4px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .month-options.show {
+            display: block;
+        }
+        
+        .month-option {
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: var(--transicao-rapida);
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--cor-texto-principal);
+            border-bottom: 1px solid var(--cor-borda);
+        }
+        
+        .month-option:last-child {
+            border-bottom: none;
+        }
+        
+        .month-option:hover {
+            background-color: var(--cor-fundo-secundario);
+        }
+        
+        .month-option.selected {
+            background-color: var(--cor-primaria-light);
+            color: var(--cor-primaria);
+            font-weight: 600;
+        }
+        
+        /* Controles de Período */
+        .period-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .period-selector {
+            display: flex;
+            background-color: var(--cor-fundo-secundario);
+            border-radius: var(--raio-lg);
+            padding: 4px;
+            border: 1px solid var(--cor-borda);
+        }
+        
+        .period-btn {
+            padding: 8px 16px;
+            border: none;
+            background: none;
+            border-radius: var(--raio-md);
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--cor-texto-secundario);
+            cursor: pointer;
+            transition: var(--transicao-rapida);
+        }
+        
+        .period-btn.active {
+            background-color: var(--cor-primaria);
+            color: white;
+            box-shadow: var(--sombra-sm);
+        }
+        
+        .period-btn:hover:not(.active) {
+            color: var(--cor-texto-principal);
+            background-color: var(--cor-borda);
+        }
+        
+        .date-range {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--raio-md);
+            background-color: var(--cor-card);
+            cursor: pointer;
+            transition: var(--transicao-rapida);
+        }
+        
+        .date-range:hover {
+            border-color: var(--cor-primaria);
+        }
+        
+        .date-range span {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--cor-texto-principal);
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 12px;
+            border-radius: var(--raio-lg);
+            cursor: pointer;
+            transition: var(--transicao-rapida);
+            border: 1px solid transparent;
+        }
+        
+        .user-menu:hover {
+            background-color: var(--cor-fundo-secundario);
+            border-color: var(--cor-borda);
+        }
+        
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--cor-primaria), var(--cor-primaria-hover));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .user-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--cor-texto-principal);
+            line-height: 1.2;
+        }
+        
+        .user-role {
+            font-size: 12px;
+            color: var(--cor-texto-secundario);
+            line-height: 1.2;
+        }
+        
+        /* Conteúdo */
+        .main-content {
+            flex: 1;
+            padding: 32px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        
+        /* Cards de Resumo */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        .stat-card {
+            background-color: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--raio-xl);
+            padding: 24px;
+            transition: var(--transicao-media);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--sombra-lg);
+            border-color: var(--cor-borda-hover);
+        }
+        
+        .stat-header {
+            display: flex;
+            justify-content: between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        
+        .stat-title {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--cor-texto-secundario);
+            margin-bottom: 8px;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 8px;
+        }
+        
+        .stat-card.receita .stat-value {
+            color: var(--cor-receita);
+        }
+        
+        .stat-card.despesa .stat-value {
+            color: var(--cor-despesa);
+        }
+        
+        .stat-card.saldo-anterior .stat-value {
+            color: var(--cor-saldo-anterior);
+        }
+        
+        .stat-card.movimentacao .stat-value {
+            color: var(--cor-primaria);
+        }
+        
+        .stat-subtitle {
+            font-size: 13px;
+            color: var(--cor-texto-terciario);
+            font-weight: 400;
+        }
+        
+        .stat-icon {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            width: 48px;
+            height: 48px;
+            border-radius: var(--raio-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0.1;
+        }
+        
+        .stat-card.receita .stat-icon {
+            background-color: var(--cor-receita);
+        }
+        
+        .stat-card.despesa .stat-icon {
+            background-color: var(--cor-despesa);
+        }
+        
+        .stat-card.saldo-anterior .stat-icon {
+            background-color: var(--cor-saldo-anterior);
+        }
+        
+        .stat-card.movimentacao .stat-icon {
+            background-color: var(--cor-primaria);
+        }
+        
+        /* Grid Principal */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        
+        /* Cards Gerais */
+        .card {
+            background-color: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--raio-xl);
+            overflow: hidden;
+            box-shadow: var(--sombra-xs);
+        }
+        
+        .card-header {
+            padding: 24px 24px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--cor-texto-principal);
+        }
+        
+        /* Botões Profissionais Melhorados */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            border-radius: var(--raio-md);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transicao-rapida);
+            text-decoration: none;
+            border: none;
+            outline: none;
+        }
+        
+        .btn-primary {
+            background-color: var(--cor-primaria);
+            color: white;
+            border: 1px solid var(--cor-primaria);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--cor-primaria-hover);
+            border-color: var(--cor-primaria-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--sombra-sm);
+        }
+        
+        .btn-secondary {
+            background-color: var(--cor-fundo-secundario);
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto-secundario);
+        }
+        
+        .btn-secondary:hover {
+            background-color: var(--cor-borda);
+            color: var(--cor-texto-principal);
+            transform: translateY(-1px);
+            box-shadow: var(--sombra-sm);
+        }
+        
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--cor-borda);
+            color: var(--cor-texto-secundario);
+        }
+        
+        .btn-outline:hover {
+            background-color: var(--cor-fundo-secundario);
+            border-color: var(--cor-primaria);
+            color: var(--cor-primaria);
+        }
+        
+        .btn-icon {
+            width: 16px;
+            height: 16px;
+            stroke-width: 2;
+        }
+        
+        /* Filtros de Transações Originais */
+        .transaction-filters {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--cor-borda);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        
+        .filter-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .filter-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--cor-texto-secundario);
+        }
+        
+        .filter-chips {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .filter-chip {
+            padding: 6px 14px;
+            border: 1px solid var(--cor-borda);
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--cor-texto-secundario);
+            background-color: var(--cor-card);
+            cursor: pointer;
+            transition: var(--transicao-rapida);
+        }
+        
+        .filter-chip:hover {
+            border-color: var(--cor-primaria);
+            color: var(--cor-primaria);
+        }
+        
+        .filter-chip.active {
+            background-color: var(--cor-primaria);
+            border-color: var(--cor-primaria);
+            color: white;
+        }
+        
+        .search-box {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--raio-md);
+            background-color: var(--cor-fundo-secundario);
+            min-width: 200px;
+        }
+        
+        .search-box input {
+            border: none;
+            background: none;
+            outline: none;
+            font-size: 13px;
+            color: var(--cor-texto-principal);
+            flex: 1;
+        }
+        
+        .search-box input::placeholder {
+            color: var(--cor-texto-terciario);
+        }
+        
+        .search-icon {
+            width: 16px;
+            height: 16px;
+            color: var(--cor-texto-terciario);
+        }
+        
+        /* Tabela de Transações */
+        .transactions-card {
+            padding: 0;
+        }
+        
+        .transactions-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .transactions-table th {
+            background-color: var(--cor-fundo-secundario);
+            padding: 16px 24px;
+            text-align: left;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--cor-texto-secundario);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+        
+        .transactions-table td {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--cor-borda);
+            font-size: 14px;
+            color: var(--cor-texto-principal);
+        }
+        
+        .transactions-table tbody tr:hover {
+            background-color: var(--cor-fundo-secundario);
+        }
+        
+        .transactions-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .transaction-description {
+            font-weight: 500;
+        }
+        
+        .transaction-date {
+            color: var(--cor-texto-secundario);
+        }
+        
+        .transaction-value {
+            font-weight: 600;
+            text-align: right;
+        }
+        
+        .transaction-value.receita {
+            color: var(--cor-receita);
+        }
+        
+        .transaction-value.despesa {
+            color: var(--cor-despesa);
+        }
+        
+        /* Badge */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: capitalize;
+        }
+        
+        .badge.receita {
+            background-color: var(--cor-receita-light);
+            color: var(--cor-receita);
+        }
+        
+        .badge.despesa {
+            background-color: var(--cor-despesa-light);
+            color: var(--cor-despesa);
+        }
+        
+        /* Gráfico Maior */
+        .chart-card {
+            padding: 24px;
+            text-align: center;
+        }
+        
+        .chart-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 32px;
+        }
+        
+        .chart-visual {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: conic-gradient(
+                var(--cor-receita) 0deg 144deg,
+                var(--cor-despesa) 144deg 288deg,
+                var(--cor-warning) 288deg 360deg
+            );
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--sombra-lg);
+        }
+        
+        .chart-visual::before {
+            content: '';
+            width: 180px;
+            height: 180px;
+            background-color: var(--cor-card);
+            border-radius: 50%;
+            position: absolute;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .chart-center {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+        
+        .chart-total {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--cor-texto-principal);
+            margin-bottom: 8px;
+        }
+        
+        .chart-label {
+            font-size: 14px;
+            color: var(--cor-texto-secundario);
+            font-weight: 500;
+        }
+        
+        .chart-legend {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 15px;
+            font-weight: 500;
+        }
+        
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+        
+        .legend-color.receita {
+            background-color: var(--cor-receita);
+        }
+        
+        .legend-color.despesa {
+            background-color: var(--cor-despesa);
+        }
+        
+        .legend-color.outros {
+            background-color: var(--cor-warning);
+        }
+        
+        /* Contas */
+        .accounts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        
+        .account-card {
+            background-color: var(--cor-card);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--raio-xl);
+            padding: 24px;
+            transition: var(--transicao-media);
+            cursor: pointer;
+        }
+        
+        .account-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--sombra-md);
+            border-color: var(--cor-primaria);
+        }
+        
+        .account-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+        
+        .account-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--cor-texto-principal);
+            margin-bottom: 4px;
+        }
+        
+        .account-bank {
+            font-size: 13px;
+            color: var(--cor-texto-secundario);
+        }
+        
+        .account-balance {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--cor-primaria);
+            margin-top: 8px;
+        }
+        
+        /* Botão Adicionar Conta Melhorado */
+        .add-account-card {
+            border: 2px dashed var(--cor-borda);
+            background-color: var(--cor-fundo-secundario);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            color: var(--cor-texto-secundario);
+            font-weight: 500;
+            font-size: 14px;
+            transition: var(--transicao-media);
+            padding: 24px;
+            min-height: auto;
+        }
+        
+        .add-account-card:hover {
+            border-color: var(--cor-primaria);
+            color: var(--cor-primaria);
+            background-color: var(--cor-primaria-light);
+            transform: translateY(-2px);
+        }
+        
+        .add-icon {
+            width: 20px;
+            height: 20px;
+            stroke-width: 2;
+        }
+        
+        /* Responsividade */
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 240px;
+            }
+            
+            .main-wrapper {
+                margin-left: 240px;
+            }
+            
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            }
+            
+            .chart-visual {
+                width: 250px;
+                height: 250px;
+            }
+            
+            .chart-visual::before {
+                width: 150px;
+                height: 150px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+                transition: transform var(--transicao-media);
+            }
+            
+            .main-wrapper {
+                margin-left: 0;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .accounts-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header-left {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+            
+            .period-controls {
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+            
+            .chart-visual {
+                width: 200px;
+                height: 200px;
+            }
+            
+            .chart-visual::before {
+                width: 120px;
+                height: 120px;
+            }
+            
+            .transaction-filters {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+            
+            .search-box {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <div class="logo-icon">F</div>
+                    <span>Financeiro Pro</span>
+                </div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-section">
+                    <div class="nav-section-title">Principal</div>
+                    <div class="nav-menu">
+                        <a href="#" class="nav-item active">
+                            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2V7zm16 3l-8 5-8-5" />
+                            </svg>
+                            Dashboard
+                        </a>
+                        <a href="#" class="nav-item">
+                            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                            </svg>
+                            Transações
+                        </a>
+                        <a href="#" class="nav-item">
+                            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                            Relatórios
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Gestão</div>
+                    <div class="nav-menu">
+                        <a href="#" class="nav-item">
+                            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                            </svg>
+                            Contas
+                        </a>
+                        <a href="#" class="nav-item">
+                            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                            </svg>
+                            Categorias
+                        </a>
+                        <a href="#" class="nav-item">
+                            <svg class="nav-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Configurações
+                        </a>
+                    </div>
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- Conteúdo Principal -->
+        <div class="main-wrapper">
+            <header class="main-header">
+                <div class="header-left">
+                    <div class="month-selector">
+                        <div class="month-dropdown" onclick="toggleMonthDropdown()">
+                            <span id="selectedMonth">Setembro</span>
+                            <svg class="dropdown-arrow" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </div>
+                        <div class="month-options" id="monthOptions">
+                            <div class="month-option" onclick="selectMonth('Janeiro')">Janeiro</div>
+                            <div class="month-option" onclick="selectMonth('Fevereiro')">Fevereiro</div>
+                            <div class="month-option" onclick="selectMonth('Março')">Março</div>
+                            <div class="month-option" onclick="selectMonth('Abril')">Abril</div>
+                            <div class="month-option" onclick="selectMonth('Maio')">Maio</div>
+                            <div class="month-option" onclick="selectMonth('Junho')">Junho</div>
+                            <div class="month-option" onclick="selectMonth('Julho')">Julho</div>
+                            <div class="month-option" onclick="selectMonth('Agosto')">Agosto</div>
+                            <div class="month-option selected" onclick="selectMonth('Setembro')">Setembro</div>
+                            <div class="month-option" onclick="selectMonth('Outubro')">Outubro</div>
+                            <div class="month-option" onclick="selectMonth('Novembro')">Novembro</div>
+                            <div class="month-option" onclick="selectMonth('Dezembro')">Dezembro</div>
+                        </div>
+                    </div>
+                    <div class="period-controls">
+                        <div class="period-selector">
+                            <button class="period-btn">Esta semana</button>
+                            <button class="period-btn active">Este mês</button>
+                            <button class="period-btn">Hoje</button>
+                        </div>
+                        <div class="date-range">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span>Set 01, 2025 - Set 30, 2025</span>
+                        </div>
+                        <button class="btn btn-outline">
+                            <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Atualizar
+                        </button>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <div class="user-menu">
+                        <div class="user-info">
+                            <div class="user-name">Rodrigo Silva</div>
+                            <div class="user-role">Administrador</div>
+                        </div>
+                        <div class="user-avatar">RS</div>
+                    </div>
+                </div>
+            </header>
+            
+            <main class="main-content">
+                <!-- Cards de Estatísticas -->
+                <div class="stats-grid">
+                    <div class="stat-card saldo-anterior">
+                        <div class="stat-title">Saldo Anterior</div>
+                        <div class="stat-value">R$ 1.245,30</div>
+                        <div class="stat-subtitle">Agosto 2025</div>
+                        <div class="stat-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card receita">
+                        <div class="stat-title">Receitas</div>
+                        <div class="stat-value">R$ 3.098,90</div>
+                        <div class="stat-subtitle">Setembro 2025</div>
+                        <div class="stat-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M7 11l5-5m0 0l5 5m-5-5v12" />
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card despesa">
+                        <div class="stat-title">Despesas</div>
+                        <div class="stat-value">R$ 1.117,00</div>
+                        <div class="stat-subtitle">Setembro 2025</div>
+                        <div class="stat-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M17 13l-5 5m0 0l-5-5m5 5V6" />
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card movimentacao">
+                        <div class="stat-title">Saldo Atual</div>
+                        <div class="stat-value">R$ 3.227,20</div>
+                        <div class="stat-subtitle">Crescimento de +159%</div>
+                        <div class="stat-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Grid de Conteúdo -->
+                <div class="content-grid">
+                    <!-- Transações -->
+                    <div class="card transactions-card">
+                        <div class="card-header">
+                            <h2 class="card-title">Últimas Transações</h2>
+                            <button class="btn btn-secondary">
+                                <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                                </svg>
+                                Ver todas
+                            </button>
+                        </div>
+                        
+                        <div class="transaction-filters">
+                            <div class="filter-section">
+                                <span class="filter-label">Filtrar por:</span>
+                                <div class="filter-chips">
+                                    <div class="filter-chip active" onclick="filterTransactions('all')">Todas</div>
+                                    <div class="filter-chip" onclick="filterTransactions('receita')">Receitas</div>
+                                    <div class="filter-chip" onclick="filterTransactions('despesa')">Despesas</div>
+                                </div>
+                            </div>
+                            <div class="search-box">
+                                <svg class="search-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                <input type="text" placeholder="Buscar transações...">
+                            </div>
+                        </div>
+                        
+                        <table class="transactions-table">
+                            <thead>
+                                <tr>
+                                    <th>Descrição</th>
+                                    <th>Data</th>
+                                    <th>Categoria</th>
+                                    <th>Valor</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="transaction-description">Salário Setembro</td>
+                                    <td class="transaction-date">10/09/2025</td>
+                                    <td><span class="badge receita">Receita</span></td>
+                                    <td class="transaction-value receita">+ R$ 2.800,00</td>
+                                </tr>
+                                <tr>
+                                    <td class="transaction-description">Supermercado Extra</td>
+                                    <td class="transaction-date">08/09/2025</td>
+                                    <td><span class="badge despesa">Despesa</span></td>
+                                    <td class="transaction-value despesa">- R$ 250,50</td>
+                                </tr>
+                                <tr>
+                                    <td class="transaction-description">Freelance Design</td>
+                                    <td class="transaction-date">05/09/2025</td>
+                                    <td><span class="badge receita">Receita</span></td>
+                                    <td class="transaction-value receita">+ R$ 298,90</td>
+                                </tr>
+                                <tr>
+                                    <td class="transaction-description">Conta de Luz</td>
+                                    <td class="transaction-date">03/09/2025</td>
+                                    <td><span class="badge despesa">Despesa</span></td>
+                                    <td class="transaction-value despesa">- R$ 185,30</td>
+                                </tr>
+                                <tr>
+                                    <td class="transaction-description">Uber</td>
+                                    <td class="transaction-date">01/09/2025</td>
+                                    <td><span class="badge despesa">Despesa</span></td>
+                                    <td class="transaction-value despesa">- R$ 25,80</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- Gráfico Maior -->
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <h2 class="card-title">Categorias</h2>
+                        </div>
+                        <div class="chart-container">
+                            <div class="chart-visual">
+                                <div class="chart-center">
+                                    <div class="chart-total">R$ 1.117</div>
+                                    <div class="chart-label">Total</div>
+                                </div>
+                            </div>
+                            <div class="chart-legend">
+                                <div class="legend-item">
+                                    <div class="legend-color receita"></div>
+                                    <span>Alimentação (40%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color despesa"></div>
+                                    <span>Transporte (30%)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color outros"></div>
+                                    <span>Outros (30%)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contas -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Minhas Contas</h2>
+                        <button class="btn btn-primary">
+                            <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Nova Conta
+                        </button>
+                    </div>
+                    <div style="padding: 0 24px 24px;">
+                        <div class="accounts-grid">
+                            <div class="account-card">
+                                <div class="account-header">
+                                    <div>
+                                        <div class="account-name">NuConta</div>
+                                        <div class="account-bank">Nubank</div>
+                                    </div>
+                                </div>
+                                <div class="account-balance">R$ 1.500,00</div>
+                            </div>
+                            
+                            <div class="account-card">
+                                <div class="account-header">
+                                    <div>
+                                        <div class="account-name">Conta Corrente</div>
+                                        <div class="account-bank">Banco do Brasil</div>
+                                    </div>
+                                </div>
+                                <div class="account-balance">R$ 1.245,30</div>
+                            </div>
+                            
+                            <div class="account-card">
+                                <div class="account-header">
+                                    <div>
+                                        <div class="account-name">Poupança</div>
+                                        <div class="account-bank">Caixa Econômica</div>
+                                    </div>
+                                </div>
+                                <div class="account-balance">R$ 481,90</div>
+                            </div>
+                            
+                            <div class="account-card add-account-card">
+                                <svg class="add-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                                </svg>
+                                <span>Adicionar Conta</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Funcionalidade do dropdown de mês
+        function toggleMonthDropdown() {
+            const dropdown = document.querySelector('.month-dropdown');
+            const options = document.getElementById('monthOptions');
+            
+            dropdown.classList.toggle('open');
+            options.classList.toggle('show');
+        }
+
+        function selectMonth(month) {
+            document.getElementById('selectedMonth').textContent = month;
+            
+            // Remove seleção anterior
+            document.querySelectorAll('.month-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            // Adiciona seleção ao mês clicado
+            event.target.classList.add('selected');
+            
+            // Fecha o dropdown
+            document.querySelector('.month-dropdown').classList.remove('open');
+            document.getElementById('monthOptions').classList.remove('show');
+        }
+
+        // Funcionalidade dos filtros de transação
+        function filterTransactions(type) {
+            // Remove active de todos os chips
+            document.querySelectorAll('.filter-chip').forEach(chip => {
+                chip.classList.remove('active');
+            });
+            
+            // Adiciona active ao chip clicado
+            event.target.classList.add('active');
+            
+            // Aqui você implementaria a lógica de filtro real
+            console.log('Filtrando por:', type);
+        }
+
+        // Fecha dropdown ao clicar fora
+        document.addEventListener('click', function(event) {
+            const monthSelector = document.querySelector('.month-selector');
+            if (!monthSelector.contains(event.target)) {
+                document.querySelector('.month-dropdown').classList.remove('open');
+                document.getElementById('monthOptions').classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>
+
