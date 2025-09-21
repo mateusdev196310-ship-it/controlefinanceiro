@@ -1,0 +1,353 @@
+{% extends 'financas/base.html' %}
+{% load static %}
+
+{% block title %}Importar Transações{% endblock %}
+
+{% block extra_css %}
+<style>
+    .import-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .import-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+    
+    .instructions {
+        background-color: #f8f9fa;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+    
+    .instructions ol {
+        padding-left: 20px;
+    }
+    
+    .btn-purple {
+        background-color: #6f42c1;
+        border-color: #6f42c1;
+        color: white;
+    }
+    
+    .btn-purple:hover {
+        background-color: #5a32a3;
+        border-color: #5a32a3;
+        color: white;
+    }
+    
+    .file-upload {
+        position: relative;
+        overflow: hidden;
+        margin: 10px 0;
+        text-align: center;
+    }
+    
+    .file-upload input[type=file] {
+        position: absolute;
+        top: 0;
+        right: 0;
+        min-width: 100%;
+        min-height: 100%;
+        font-size: 100px;
+        text-align: right;
+        filter: alpha(opacity=0);
+        opacity: 0;
+        outline: none;
+        cursor: pointer;
+        display: block;
+    }
+    
+    .file-select-button {
+        display: inline-block;
+        padding: 10px 20px;
+        background: #6f42c1;
+        color: white;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+    
+    .file-select-name {
+        margin-left: 10px;
+    }
+    
+    @media (max-width: 768px) {
+        .import-container {
+            padding: 0 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container import-container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'dashboard' %}">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'transacoes' %}">Transações</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Importar Transações</li>
+                </ol>
+            </nav>
+            
+            <div class="card import-card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Importar Transações</h5>
+                </div>
+                <div class="card-body">
+                    <div class="instructions">
+                        <h6>Instruções para importação:</h6>
+                        <ol>
+                            <li>Baixe o modelo de planilha clicando no botão abaixo.</li>
+                            <li>Preencha a planilha com suas transações seguindo o formato indicado.</li>
+                            <li>Salve a planilha e faça o upload do arquivo.</li>
+                            <li>Clique em "Importar" para processar as transações.</li>
+                        </ol>
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i> Campos obrigatórios: Descrição, Valor, Data, Tipo (Receita/Despesa) e Categoria.
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mb-4">
+                        <a href="{% url 'download_modelo_planilha' %}" class="btn btn-success">
+                            <i class="fas fa-download"></i> Baixar Modelo de Planilha
+                        </a>
+                    </div>
+                    
+                    <form method="post" enctype="multipart/form-data" id="formImportacao">
+                        {% csrf_token %}
+                        <div class="form-group">
+                            <label for="arquivo_excel">Selecione o arquivo Excel:</label>
+                            <div class="file-upload">
+                                <div class="file-select">
+                                    <div class="file-select-button" id="fileName">Escolher Arquivo</div>
+                                    <div class="file-select-name" id="noFile">Nenhum arquivo selecionado</div>
+                                    <input type="file" name="arquivo_excel" id="arquivo_excel" accept=".xlsx,.xls" required>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group mt-4 text-center">
+                            <button type="submit" class="btn btn-purple">
+                                <i class="fas fa-upload"></i> Importar Transações
+                            </button>
+                            <a href="{% url 'transacoes' %}" class="btn btn-outline-secondary ml-2">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                    
+                    {% if erros_importacao or request.session.erros_importacao %}
+                    <div class="mt-4">
+                        <div class="alert alert-danger">
+                            <h6>Erros encontrados durante a importação:</h6>
+                            <ul>
+                                {% if erros_importacao %}
+                                    {% for erro in erros_importacao %}
+                                    <li>{{ erro }}</li>
+                                    {% endfor %}
+                                {% else %}
+                                    {% for erro in request.session.erros_importacao %}
+                                    <li>{{ erro }}</li>
+                                    {% endfor %}
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Modal para correção de dados inválidos -->
+                    {% if mostrar_modal_correcao or request.session.dados_invalidos %}
+                    <div class="modal fade" id="modalCorrecaoDados" tabindex="-1" aria-labelledby="modalCorrecaoDadosLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-xl">
+                            <div class="modal-content">
+                                <div class="modal-header bg-warning text-dark">
+                                    <h5 class="modal-title" id="modalCorrecaoDadosLabel">
+                                        <i class="fas fa-exclamation-triangle"></i> Correção de Dados Inválidos
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>Os seguintes dados não puderam ser importados. Você pode corrigir manualmente e salvar:</p>
+                                    
+                                    <form id="formCorrecaoDados" method="post" action="{% url 'salvar_correcao_importacao' %}">
+                                        {% csrf_token %}
+                                        <div class="table-responsive">
+                                            <table class="table table-striped table-bordered">
+                                                <thead class="table-dark">
+                                                    <tr>
+                                                        <th>Linha</th>
+                                                        <th>Descrição</th>
+                                                        <th>Valor</th>
+                                                        <th>Data</th>
+                                                        <th>Tipo</th>
+                                                        <th>Conta</th>
+                                                        <th>Categoria</th>
+                                                        <th>Responsável</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% if dados_invalidos %}
+                                                        {% for dado in dados_invalidos %}
+                                                        <tr>
+                                                            <td>{{ dado.linha }}</td>
+                                                            <td>
+                                                                <input type="text" class="form-control form-control-sm" 
+                                                                    name="descricao_{{ forloop.counter0 }}" value="{{ dado.descricao }}" required>
+                                                            </td>
+                                                            <td>
+                                                                <input type="text" class="form-control form-control-sm" 
+                                                                    name="valor_{{ forloop.counter0 }}" value="{{ dado.valor }}" required>
+                                                            </td>
+                                                            <td>
+                                                                <input type="date" class="form-control form-control-sm" 
+                                                                    name="data_{{ forloop.counter0 }}" value="{% if dado.data %}{{ dado.data|date:'Y-m-d' }}{% endif %}" required>
+                                                            </td>
+                                                            <td>
+                                                                <select class="form-select form-select-sm" name="tipo_{{ forloop.counter0 }}" required>
+                                                                    <option value="">Selecione</option>
+                                                                    {% for tipo_choice in tipos_transacao %}
+                                                                        <option value="{{ tipo_choice.0 }}" {% if dado.tipo == tipo_choice.0 %}selected{% endif %}>
+                                                                            {{ tipo_choice.1 }}
+                                                                        </option>
+                                                                    {% endfor %}
+                                                                </select>
+                                                            </td>
+                                                            <td>
+                                                                <select class="form-select form-select-sm" name="conta_{{ forloop.counter0 }}" required>
+                                                                    <option value="">Selecione</option>
+                                                                    {% for conta in contas %}
+                                                                        <option value="{{ conta.id }}" {% if dado.conta == conta.nome %}selected{% endif %}>
+                                                                            {{ conta.nome }}
+                                                                        </option>
+                                                                    {% endfor %}
+                                                                </select>
+                                                            </td>
+                                                            <td>
+                                                                <select class="form-select form-select-sm" name="categoria_{{ forloop.counter0 }}">
+                                                                    <option value="">Selecione</option>
+                                                                    {% for categoria in categorias %}
+                                                                        <option value="{{ categoria.id }}" {% if dado.categoria == categoria.nome %}selected{% endif %}>
+                                                                            {{ categoria.nome }}
+                                                                        </option>
+                                                                    {% endfor %}
+                                                                </select>
+                                                            </td>
+                                                            <td>
+                                                                <input type="text" class="form-control form-control-sm" 
+                                                                    name="responsavel_{{ forloop.counter0 }}" value="{{ dado.responsavel }}">
+                                                            </td>
+                                                        </tr>
+                                                        <input type="hidden" name="linha_{{ forloop.counter0 }}" value="{{ dado.linha }}">
+                                                        {% endfor %}
+                                                        <input type="hidden" name="total_linhas" value="{{ dados_invalidos|length }}">
+                                                    {% elif request.session.dados_invalidos %}
+                                                        {% for dado in request.session.dados_invalidos %}
+                                                        <tr>
+                                                            <td>{{ dado.linha }}</td>
+                                                            <td>
+                                                                <input type="text" class="form-control form-control-sm" 
+                                                                    name="descricao_{{ forloop.counter0 }}" value="{{ dado.descricao }}" required>
+                                                            </td>
+                                                            <td>
+                                                                <input type="text" class="form-control form-control-sm" 
+                                                                    name="valor_{{ forloop.counter0 }}" value="{{ dado.valor }}" required>
+                                                            </td>
+                                                            <td>
+                                                                <input type="date" class="form-control form-control-sm" 
+                                                                    name="data_{{ forloop.counter0 }}" value="{{ dado.data }}" required>
+                                                            </td>
+                                                            <td>
+                                                                <select class="form-select form-select-sm" name="tipo_{{ forloop.counter0 }}" required>
+                                                                    <option value="">Selecione</option>
+                                                                    {% for tipo_choice in tipos_transacao %}
+                                                                        <option value="{{ tipo_choice.0 }}" {% if dado.tipo == tipo_choice.0 %}selected{% endif %}>
+                                                                            {{ tipo_choice.1 }}
+                                                                        </option>
+                                                                    {% endfor %}
+                                                                </select>
+                                                            </td>
+                                                            <td>
+                                                                <select class="form-select form-select-sm" name="conta_{{ forloop.counter0 }}" required>
+                                                                    <option value="">Selecione</option>
+                                                                    {% for conta in contas %}
+                                                                        <option value="{{ conta.id }}" {% if dado.conta == conta.nome %}selected{% endif %}>
+                                                                            {{ conta.nome }}
+                                                                        </option>
+                                                                    {% endfor %}
+                                                                </select>
+                                                            </td>
+                                                            <td>
+                                                                <select class="form-select form-select-sm" name="categoria_{{ forloop.counter0 }}">
+                                                                    <option value="">Selecione</option>
+                                                                    {% for categoria in categorias %}
+                                                                        <option value="{{ categoria.id }}" {% if dado.categoria == categoria.nome %}selected{% endif %}>
+                                                                            {{ categoria.nome }}
+                                                                        </option>
+                                                                    {% endfor %}
+                                                                </select>
+                                                            </td>
+                                                            <td>
+                                                                <input type="text" class="form-control form-control-sm" 
+                                                                    name="responsavel_{{ forloop.counter0 }}" value="{{ dado.responsavel }}">
+                                                            </td>
+                                                        </tr>
+                                                        <input type="hidden" name="linha_{{ forloop.counter0 }}" value="{{ dado.linha }}">
+                                                        {% endfor %}
+                                                        <input type="hidden" name="total_linhas" value="{{ request.session.dados_invalidos|length }}">
+                                                    {% endif %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div class="text-center mt-3">
+                                            <button type="submit" class="btn btn-success">
+                                                <i class="fas fa-save"></i> Salvar Correções
+                                            </button>
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                <i class="fas fa-times"></i> Fechar
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.getElementById('arquivo_excel').addEventListener('change', function() {
+        var fileName = this.value.split('\\').pop();
+        document.getElementById('noFile').innerHTML = fileName ? fileName : 'Nenhum arquivo selecionado';
+    });
+    
+    document.getElementById('formImportacao').addEventListener('submit', function(e) {
+        var fileInput = document.getElementById('arquivo_excel');
+        if (!fileInput.value) {
+            e.preventDefault();
+            alert('Por favor, selecione um arquivo para importar.');
+        }
+    });
+    
+    // Abrir modal automaticamente se houver dados inválidos
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if mostrar_modal_correcao or request.session.dados_invalidos %}
+            var modalCorrecao = new bootstrap.Modal(document.getElementById('modalCorrecaoDados'), {
+                backdrop: 'static',  // Impede que o modal seja fechado ao clicar fora dele
+                keyboard: false       // Impede que o modal seja fechado com a tecla ESC
+            });
+            modalCorrecao.show();
+        {% endif %}
+    });
+</script>
+{% endblock %}

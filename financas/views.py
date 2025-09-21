@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.core.paginator import Paginator
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.core.mail import send_mail
 from django.utils.crypto import get_random_string
@@ -23,6 +23,7 @@ import time
 import logging
 import re
 import uuid
+import io
 
 from .models import Categoria, Transacao, Meta, DespesaParcelada, Conta, FechamentoMensal, CustomUser, ParcelaPlanejada
 from .services import ContaService, TransacaoService
@@ -498,6 +499,247 @@ def transacoes(request):
             'tipos_transacao': TipoTransacao.CHOICES,
         }
         return render(request, 'financas/transacoes.html', context)
+
+@login_required
+def download_modelo_planilha(request):
+    """
+    Gera e faz o download do modelo de planilha para importação de transações.
+    """
+    try:
+        # Gerar o modelo de planilha usando o serviço
+        excel_bytes = TransacaoService.gerar_modelo_planilha()
+        
+        # Criar resposta HTTP com o arquivo Excel
+        response = HttpResponse(
+            excel_bytes,
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename=modelo_importacao_transacoes.xlsx'
+        
+        logger.info("Modelo de planilha para importação de transações gerado com sucesso")
+        return response
+        
+    except TransacaoServiceError as e:
+        logger.error(f"Erro ao gerar modelo de planilha: {str(e)}")
+        messages.error(request, f"Erro ao gerar modelo de planilha: {str(e)}")
+        return redirect('transacoes')
+        
+    except Exception as e:
+        logger.error(f"Erro inesperado ao gerar modelo de planilha: {str(e)}")
+        messages.error(request, "Erro ao gerar modelo de planilha. Tente novamente.")
+        return redirect('transacoes')
+
+@login_required
+def importar_transacoes(request):
+    """
+    Importa transações a partir de uma planilha Excel.
+    """
+    if request.method == 'POST':
+        try:
+            # Verificar se o arquivo foi enviado
+            if 'arquivo_excel' not in request.FILES:
+                messages.error(request, "Nenhum arquivo foi enviado.")
+                return redirect('transacoes')
+            
+            arquivo_excel = request.FILES['arquivo_excel']
+            
+            # Verificar extensão do arquivo
+            if not arquivo_excel.name.endswith(('.xlsx', '.xls')):
+                messages.error(request, "O arquivo deve ser uma planilha Excel (.xlsx ou .xls).")
+                return redirect('transacoes')
+            
+            # Importar transações usando o serviço
+            resultado = TransacaoService.importar_transacoes_planilha(arquivo_excel, request.user)
+            
+            # Exibir mensagem de sucesso ou erro
+            if resultado['sucesso']:
+                messages.success(
+                    request, 
+                    f"Importação concluída com sucesso! {resultado['transacoes_importadas']} transações importadas."
+                )
+                return redirect('transacoes')
+            else:
+                if resultado['transacoes_importadas'] > 0:
+                    messages.warning(
+                        request,
+                        f"Importação parcial: {resultado['transacoes_importadas']} de {resultado['total_linhas']} transações importadas. "
+                        f"Ocorreram {len(resultado['erros'])} erros."
+                    )
+                else:
+                    messages.error(
+                        request,
+                        f"Falha na importação. Nenhuma transação foi importada. "
+                        f"Ocorreram {len(resultado['erros'])} erros."
+                    )
+                
+                # Adicionar erros detalhados e dados inválidos à sessão para exibição
+                request.session['erros_importacao'] = resultado['erros'][:20]  # Limitar a 20 erros para não sobrecarregar
+                request.session['dados_invalidos'] = resultado['dados_invalidos']
+                
+                # Obter dados para o formulário de correção
+                categorias = Categoria.objects.all()
+                contas = Conta.objects.all()
+                
+                context = {
+                    'erros_importacao': resultado['erros'][:20],
+                    'dados_invalidos': resultado['dados_invalidos'],
+                    'categorias': categorias,
+                    'contas': contas,
+                    'tipos_transacao': TipoTransacao.CHOICES,
+                    'mostrar_modal_correcao': True
+                }
+                
+                return render(request, 'financas/importar_transacoes.html', context)
+            
+        except TransacaoServiceError as e:
+            logger.error(f"Erro do serviço ao importar transações: {str(e)}")
+            messages.error(request, str(e))
+            return redirect('transacoes')
+            
+        except Exception as e:
+            logger.error(f"Erro inesperado ao importar transações: {str(e)}")
+            messages.error(request, "Erro ao importar transações. Tente novamente.")
+            return redirect('transacoes')
+    else:
+        # Limpar erros de importação anteriores da sessão
+        if 'erros_importacao' in request.session:
+            del request.session['erros_importacao']
+        
+        # Verificar se há dados inválidos na sessão para mostrar o modal
+        if 'dados_invalidos' in request.session:
+            # Obter dados para o formulário de correção
+            categorias = Categoria.objects.all()
+            contas = Conta.objects.all()
+            
+            context = {
+                'categorias': categorias,
+                'contas': contas,
+                'tipos_transacao': TipoTransacao.CHOICES,
+                'mostrar_modal_correcao': True
+            }
+            
+            return render(request, 'financas/importar_transacoes.html', context)
+        
+        # Renderizar formulário de importação
+        return render(request, 'financas/importar_transacoes.html')
+
+
+@login_required
+def salvar_correcao_importacao(request):
+    """Salva as correções de dados inválidos da importação."""
+    if request.method == 'POST':
+        try:
+            tenant_id = get_tenant_id(request.user)
+            total_linhas = int(request.POST.get('total_linhas', 0))
+            transacoes_salvas = 0
+            erros = []
+            
+            for i in range(total_linhas):
+                try:
+                    # Obter dados do formulário
+                    descricao = request.POST.get(f'descricao_{i}')
+                    valor_str = request.POST.get(f'valor_{i}')
+                    data_str = request.POST.get(f'data_{i}')
+                    tipo = request.POST.get(f'tipo_{i}')
+                    conta_id = request.POST.get(f'conta_{i}')
+                    categoria_id = request.POST.get(f'categoria_{i}')
+                    responsavel = request.POST.get(f'responsavel_{i}')
+                    linha = request.POST.get(f'linha_{i}')
+                    
+                    # Validar dados obrigatórios
+                    if not all([descricao, valor_str, data_str, tipo, conta_id]):
+                        erros.append(f"Linha {linha}: Campos obrigatórios não preenchidos")
+                        continue
+                    
+                    # Converter valor para decimal
+                    try:
+                        valor_str = valor_str.replace('.', '').replace(',', '.')
+                        valor = Decimal(valor_str)
+                    except:
+                        erros.append(f"Linha {linha}: Valor inválido")
+                        continue
+                    
+                    # Converter data
+                    try:
+                        # O campo input type="date" já retorna no formato YYYY-MM-DD
+                        data = datetime.strptime(data_str, '%Y-%m-%d').date()
+                    except ValueError:
+                        # Tentar outros formatos possíveis
+                        try:
+                            formatos = ['%d/%m/%Y', '%d-%m-%Y', '%m/%d/%Y', '%d.%m.%Y', '%Y/%m/%d', '%Y.%m.%d']
+                            data = None
+                            for formato in formatos:
+                                try:
+                                    data = datetime.strptime(data_str, formato).date()
+                                    break
+                                except ValueError:
+                                    continue
+                            if data is None:
+                                erros.append(f"Linha {linha}: Data inválida. Use o formato YYYY-MM-DD")
+                                continue
+                        except Exception:
+                            erros.append(f"Linha {linha}: Data inválida. Use o formato YYYY-MM-DD")
+                            continue
+                    
+                    # Obter conta e categoria
+                    try:
+                        conta = Conta.objects.get(id=conta_id, tenant_id=tenant_id)
+                    except:
+                        erros.append(f"Linha {linha}: Conta não encontrada")
+                        continue
+                    
+                    categoria = None
+                    if categoria_id:
+                        try:
+                            categoria = Categoria.objects.get(id=categoria_id, tenant_id=tenant_id)
+                        except:
+                            erros.append(f"Linha {linha}: Categoria não encontrada")
+                            continue
+                    
+                    # Criar transação
+                    transacao = Transacao(
+                        descricao=descricao,
+                        valor=valor,
+                        data=data,
+                        tipo=tipo,
+                        conta=conta,
+                        categoria=categoria,
+                        responsavel=responsavel,
+                        tenant_id=tenant_id
+                    )
+                    transacao.save()
+                    
+                    # Atualizar saldo da conta
+                    if tipo == 'R':
+                        conta.saldo += valor
+                    else:
+                        conta.saldo -= valor
+                    conta.save()
+                    
+                    transacoes_salvas += 1
+                    
+                except Exception as e:
+                    erros.append(f"Linha {linha}: Erro ao salvar - {str(e)}")
+            
+            # Limpar dados inválidos da sessão
+            if 'dados_invalidos' in request.session:
+                del request.session['dados_invalidos']
+            
+            if transacoes_salvas > 0:
+                messages.success(request, f"{transacoes_salvas} transações foram salvas com sucesso!")
+            
+            if erros:
+                request.session['erros_importacao'] = erros
+                messages.error(request, f"Ocorreram {len(erros)} erros durante o salvamento das correções.")
+            
+            return redirect('transacoes')
+            
+        except Exception as e:
+            logger.error(f"Erro ao salvar correções: {str(e)}")
+            messages.error(request, f"Erro ao salvar correções: {str(e)}")
+            return redirect('importar_transacoes')
+    
+    return redirect('importar_transacoes')
 
 def adicionar_transacao(request, transacao_id=None):
     """

@@ -586,3 +586,276 @@ class TransacaoService:
                 entity_id=transacao_id
             )
             raise TransacaoServiceError(f"Erro ao excluir transação: {str(e)}")
+
+    @staticmethod
+    def gerar_modelo_planilha():
+        """
+        Gera um modelo de planilha para importação de transações.
+        
+        Returns:
+            bytes: Conteúdo do arquivo Excel em bytes
+        """
+        import pandas as pd
+        import io
+        from .constants import TipoTransacao
+        from .models import Categoria
+        
+        try:
+            # Criar DataFrame com colunas do modelo
+            df = pd.DataFrame(columns=[
+                'descricao', 'valor', 'data', 'tipo', 'categoria', 
+                'responsavel', 'observacoes', 'conta'
+            ])
+            
+            # Adicionar linha de exemplo
+            df.loc[0] = [
+                'Exemplo de Transação', '100.00', '2023-01-01', 
+                'receita', 'Salário', 'João', 'Observação opcional', 'Conta Principal'
+            ]
+            
+            # Criar buffer para o arquivo Excel
+            buffer = io.BytesIO()
+            
+            # Criar um ExcelWriter
+            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                df.to_excel(writer, sheet_name='Transacoes', index=False)
+                
+                # Obter a planilha para adicionar validações
+                workbook = writer.book
+                worksheet = writer.sheets['Transacoes']
+                
+                # Adicionar informações sobre tipos válidos
+                tipos_sheet = workbook.create_sheet('Tipos_Validos')
+                tipos_sheet['A1'] = 'Tipos de Transação Válidos'
+                for i, tipo in enumerate(TipoTransacao.CHOICES):
+                    tipos_sheet[f'A{i+2}'] = tipo[0]
+                    tipos_sheet[f'B{i+2}'] = tipo[1]
+                
+                # Adicionar categorias disponíveis
+                categorias_sheet = workbook.create_sheet('Categorias')
+                categorias_sheet['A1'] = 'Categorias Disponíveis'
+                categorias = Categoria.objects.all().values_list('nome', flat=True)
+                for i, categoria in enumerate(categorias):
+                    categorias_sheet[f'A{i+2}'] = categoria
+                
+                # Adicionar instruções
+                info_sheet = workbook.create_sheet('Instruções')
+                info_sheet['A1'] = 'Instruções para Importação de Transações'
+                info_sheet['A2'] = '1. Preencha os dados na planilha "Transacoes"'
+                info_sheet['A3'] = '2. Formatos de data aceitos: YYYY-MM-DD, DD/MM/YYYY, DD-MM-YYYY, MM/DD/YYYY, DD.MM.YYYY'
+                info_sheet['A4'] = '3. O valor deve ser um número decimal (ex: 100.00)'
+                info_sheet['A5'] = '4. O tipo deve ser "receita" ou "despesa"'
+                info_sheet['A6'] = '5. Use categorias existentes ou deixe em branco'
+                info_sheet['A7'] = '6. A conta deve existir no sistema'
+                info_sheet['A8'] = '7. Responsável e observações são opcionais'
+            
+            # Retornar o buffer como bytes
+            buffer.seek(0)
+            return buffer.getvalue()
+            
+        except Exception as e:
+            logger.error(f"Erro ao gerar modelo de planilha: {str(e)}")
+            raise TransacaoServiceError(f"Erro ao gerar modelo de planilha: {str(e)}")
+    
+    @staticmethod
+    def importar_transacoes_planilha(arquivo_excel, usuario):
+        """
+        Importa transações de uma planilha Excel.
+        
+        Args:
+            arquivo_excel: Arquivo Excel enviado pelo usuário
+            usuario: Usuário que está realizando a importação
+            
+        Returns:
+            dict: Resultado da importação com estatísticas
+            
+        Raises:
+            TransacaoServiceError: Se houver erro na importação
+        """
+        import pandas as pd
+        from django.db import transaction
+        from .models import Categoria, Conta
+        from decimal import Decimal, InvalidOperation
+        from datetime import datetime
+        
+        try:
+            # Ler o arquivo Excel - forçando o tipo de dados da coluna data como string
+            df = pd.read_excel(arquivo_excel, sheet_name='Transacoes', dtype={'data': str})
+            
+            # Validar colunas obrigatórias
+            colunas_obrigatorias = ['descricao', 'valor', 'data', 'tipo']
+            for coluna in colunas_obrigatorias:
+                if coluna not in df.columns:
+                    raise TransacaoServiceError(f"Coluna obrigatória '{coluna}' não encontrada na planilha")
+            
+            # Estatísticas da importação
+            total_linhas = len(df)
+            transacoes_importadas = 0
+            erros = []
+            dados_invalidos = []  # Lista para armazenar dados que precisam de correção manual
+            
+            # Processar cada linha da planilha
+            with transaction.atomic():
+                for index, row in df.iterrows():
+                    try:
+                        # Validar campos obrigatórios
+                        if pd.isna(row['descricao']) or pd.isna(row['valor']) or pd.isna(row['data']) or pd.isna(row['tipo']):
+                            erros.append(f"Linha {index+2}: Campos obrigatórios não preenchidos")
+                            continue
+                        
+                        # Validar e converter valor
+                        try:
+                            valor = Decimal(str(row['valor']))
+                            if valor <= 0:
+                                erros.append(f"Linha {index+2}: Valor deve ser maior que zero")
+                                continue
+                        except InvalidOperation:
+                            erros.append(f"Linha {index+2}: Valor inválido")
+                            continue
+                        
+                        # Validar e converter data - aceitar múltiplos formatos
+                        try:
+                            # Converter para string para garantir compatibilidade
+                            data_str = str(row['data']).strip()
+                            # Tentar diferentes formatos de data - priorizando o formato dd/mm/aaaa
+                            formatos = ['%d/%m/%Y', '%Y-%m-%d', '%d-%m-%Y', '%d.%m.%Y', 
+                                       '%Y/%m/%d', '%Y.%m.%d', '%m/%d/%Y', '%m-%d-%Y', '%m.%d.%Y']
+                            data = None
+                            for formato in formatos:
+                                try:
+                                    data = datetime.strptime(data_str, formato).date()
+                                    break
+                                except ValueError:
+                                    continue
+                            if data is None:
+                                # Adicionar linha e valor aos erros para depuração
+                                erros.append(f"Linha {index+2}: Data inválida '{data_str}'. Use o formato DD/MM/AAAA ou AAAA-MM-DD")
+                                # Adicionar dados inválidos para correção manual
+                                dados_invalidos.append({
+                                    'linha': index+2,
+                                    'descricao': row.get('descricao', ''),
+                                    'valor': row.get('valor', ''),
+                                    'data': data_str,  # Manter o valor original para correção
+                                    'tipo': row.get('tipo', ''),
+                                    'conta': row.get('conta', ''),
+                                    'categoria': row.get('categoria', ''),
+                                    'responsavel': row.get('responsavel', '')
+                                })
+                                continue
+                        except (ValueError, AttributeError):
+                            erros.append(f"Linha {index+2}: Data inválida. Use o formato DD/MM/AAAA ou AAAA-MM-DD")
+                            continue
+                        
+                        # Validar tipo
+                        tipo = str(row['tipo']).lower()
+                        if not TipoTransacao.is_valid_type(tipo):
+                            erros.append(f"Linha {index+2}: Tipo inválido. Use 'receita' ou 'despesa'")
+                            continue
+                        
+                        # Buscar conta (opcional)
+                        conta = None
+                        if 'conta' in row and not pd.isna(row.get('conta', None)):
+                            try:
+                                conta = Conta.objects.get(nome=row['conta'])
+                            except Conta.DoesNotExist:
+                                erros.append(f"Linha {index+2}: Conta '{row['conta']}' não encontrada")
+                                continue
+                        
+                        # Buscar categoria (opcional)
+                        categoria = None
+                        if 'categoria' in row and not pd.isna(row['categoria']):
+                            try:
+                                categoria = Categoria.objects.get(nome=row['categoria'])
+                            except Categoria.DoesNotExist:
+                                erros.append(f"Linha {index+2}: Categoria '{row['categoria']}' não encontrada")
+                                continue
+                        
+                        # Campos opcionais
+                        responsavel = None if pd.isna(row.get('responsavel', None)) else str(row['responsavel'])
+                        observacoes = None if pd.isna(row.get('observacoes', None)) else str(row['observacoes'])
+                        
+                        # Criar transação
+                        if conta is None:
+                            erros.append(f"Linha {index+2}: É necessário informar uma conta válida")
+                            continue
+                            
+                        # Obter tenant_id do usuário
+                        from .views import get_tenant_id
+                        tenant_id = get_tenant_id(usuario)
+                        
+                        transacao = Transacao.objects.create(
+                            descricao=str(row['descricao']),
+                            valor=valor,
+                            data=data,
+                            tipo=tipo,
+                            conta=conta,
+                            categoria=categoria,
+                            responsavel=responsavel,
+                            tenant_id=tenant_id
+                        )
+                        
+                        transacoes_importadas += 1
+                        
+                    except Exception as e:
+                        erros.append(f"Linha {index+2}: {str(e)}")
+            
+            # Atualizar saldos das contas afetadas
+            contas_afetadas = set()
+            for index, row in df.iterrows():
+                if 'conta' in row and not pd.isna(row.get('conta', None)):
+                    try:
+                        conta = Conta.objects.get(nome=row['conta'])
+                        contas_afetadas.add(conta.id)
+                    except Conta.DoesNotExist:
+                        pass
+            
+            for conta_id in contas_afetadas:
+                ContaService.atualizar_saldo_conta(conta_id)
+            
+            # Verificar se há linhas com erro que ainda não foram adicionadas a dados_invalidos
+            for index, row in df.iterrows():
+                # Verificar se esta linha teve erro
+                linha_com_erro = False
+                linha_ja_adicionada = False
+                
+                # Verificar se a linha tem erro
+                for erro in erros:
+                    if f"Linha {index+2}:" in erro:
+                        linha_com_erro = True
+                        break
+                
+                # Verificar se a linha já foi adicionada aos dados_invalidos
+                for dado in dados_invalidos:
+                    if dado.get('linha') == index+2:
+                        linha_ja_adicionada = True
+                        break
+                
+                # Adicionar apenas se tem erro e ainda não foi adicionada
+                if linha_com_erro and not linha_ja_adicionada:
+                    dados_invalidos.append({
+                        'linha': index+2,
+                        'descricao': str(row.get('descricao', '')) if not pd.isna(row.get('descricao', '')) else '',
+                        'valor': str(row.get('valor', '')) if not pd.isna(row.get('valor', '')) else '',
+                        'data': str(row.get('data', '')) if not pd.isna(row.get('data', '')) else '',
+                        'tipo': str(row.get('tipo', '')) if not pd.isna(row.get('tipo', '')) else '',
+                        'conta': str(row.get('conta', '')) if not pd.isna(row.get('conta', '')) else '',
+                        'categoria': str(row.get('categoria', '')) if not pd.isna(row.get('categoria', '')) else '',
+                        'responsavel': str(row.get('responsavel', '')) if not pd.isna(row.get('responsavel', '')) else ''
+                    })
+            
+            resultado = {
+                'total_linhas': total_linhas,
+                'transacoes_importadas': transacoes_importadas,
+                'erros': erros,
+                'dados_invalidos': dados_invalidos,
+                'sucesso': len(erros) == 0
+            }
+            
+            # Log de sucesso
+            logger.info(f"Importação de transações concluída: {transacoes_importadas}/{total_linhas} importadas")
+            
+            return resultado
+            
+        except Exception as e:
+            logger.error(f"Erro ao importar transações: {str(e)}")
+            raise TransacaoServiceError(f"Erro ao importar transações: {str(e)}")
