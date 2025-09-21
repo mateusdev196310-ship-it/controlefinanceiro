@@ -3023,8 +3023,12 @@ def confirmar_email_view(request, token):
         user.token_verificacao = ''  # Limpar token
         user.save()
         
-        messages.success(request, 'Email confirmado com sucesso! Você já pode fazer login.')
-        return redirect('login')
+        # Fazer login automático após confirmação de email
+        from django.contrib.auth import login as auth_login
+        auth_login(request, user)
+        
+        messages.success(request, 'Email confirmado com sucesso! Bem-vindo ao sistema!')
+        return redirect('dashboard')
         
     except CustomUser.DoesNotExist:
         messages.error(request, 'Token inválido ou expirado.')
@@ -3064,6 +3068,10 @@ def buscar_cnpj_view(request):
 
 def login_view(request):
     """View de login personalizada para a aplicação financas."""
+    # Se o usuário já está autenticado, redireciona para o dashboard
+    if request.user.is_authenticated:
+        return redirect('dashboard')
+        
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
