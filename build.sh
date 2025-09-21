@@ -6,6 +6,20 @@ echo "=== INICIANDO BUILD ==="
 echo "Python version: $(python --version)"
 echo "Pip version: $(pip --version)"
 
+# Verificar e garantir a versão correta do Python
+if [[ "$(python --version)" != *"3.11.0"* ]]; then
+    echo "AVISO: A versão do Python não é 3.11.0. Tentando usar pyenv se disponível..."
+    if command -v pyenv &> /dev/null; then
+        echo "pyenv encontrado, tentando configurar Python 3.11.0"
+        pyenv local 3.11.0 || echo "Falha ao configurar Python 3.11.0 com pyenv"
+    else
+        echo "pyenv não encontrado. Verificando se PYTHON_VERSION está definido corretamente"
+        echo "PYTHON_VERSION: $PYTHON_VERSION"
+    fi
+fi
+
+echo "Python version após verificação: $(python --version)"
+
 # Debug das variáveis de ambiente
 echo "\n=== DEBUG VARIÁVEIS DE AMBIENTE ==="
 python debug_render_env.py
