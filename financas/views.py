@@ -2813,9 +2813,11 @@ def registro_view(request):
         
         # Verificar se já existe um usuário com o mesmo schema_name que seria gerado
         if tipo_pessoa == 'fisica' and cpf:
-            schema_name_esperado = f"user_{re.sub(r'\D', '', cpf)}"
+            cpf_limpo = re.sub(r'\D', '', cpf)
+            schema_name_esperado = f"user_{cpf_limpo}"
         elif tipo_pessoa == 'juridica' and cnpj:
-            schema_name_esperado = f"user_{re.sub(r'\D', '', cnpj)}"
+            cnpj_limpo = re.sub(r'\D', '', cnpj)
+            schema_name_esperado = f"user_{cnpj_limpo}"
         else:
             schema_name_esperado = None
             

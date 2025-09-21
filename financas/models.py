@@ -190,9 +190,11 @@ class CustomUser(AbstractUser):
         # Gera o nome do schema baseado no CPF/CNPJ
         if not self.schema_name:
             if self.tipo_pessoa == 'fisica' and self.cpf:
-                self.schema_name = f"user_{re.sub(r'\D', '', self.cpf)}"
+                cpf_limpo = re.sub(r'\D', '', self.cpf)
+                self.schema_name = f"user_{cpf_limpo}"
             elif self.tipo_pessoa == 'juridica' and self.cnpj:
-                self.schema_name = f"user_{re.sub(r'\D', '', self.cnpj)}"
+                cnpj_limpo = re.sub(r'\D', '', self.cnpj)
+                self.schema_name = f"user_{cnpj_limpo}"
         
         super().save(*args, **kwargs)
     
