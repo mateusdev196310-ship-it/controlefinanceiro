@@ -16,8 +16,17 @@ import time
 
 from .models import Conta, Transacao
 from .constants import TipoTransacao, ErrorMessages, SuccessMessages
-from .exceptions import ContaServiceError, TransacaoServiceError
-from .logging_config import get_logger
+
+# Definir exceções localmente para evitar problemas de importação
+class ContaServiceError(Exception):
+    pass
+
+class TransacaoServiceError(Exception):
+    pass
+# Criar função get_logger local para evitar problemas de importação
+def get_logger(name):
+    logger = logging.getLogger(name)
+    return logger
 
 logger = get_logger('financas.services')
 

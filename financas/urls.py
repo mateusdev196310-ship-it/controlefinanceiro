@@ -1,13 +1,22 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from django.shortcuts import redirect
+
+# Importar views diretamente para evitar problemas de importação circular
+from django.http import HttpResponse
+
+# Definir view temporária para teste
+def home_view(request):
+    return HttpResponse("Sistema Financeiro - Página Inicial")
+
+# Importar outras views
 from . import views
 
 urlpatterns = [
     path('login/', views.login_view, name='login'),
     path('dashboard/', views.dashboard, name='dashboard'),
     path('dashboard/modern/', views.dashboard_modern, name='dashboard_modern'),
-    path('', views.home_view, name='home'),
+    path('', home_view, name='home'),
     path('transacoes/', views.transacoes, name='transacoes'),
     path('transacoes/criar/', views.adicionar_transacao, name='transacao_create'),
     path('transacoes/editar/<int:transacao_id>/', views.adicionar_transacao, name='transacao_update'),

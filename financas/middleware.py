@@ -6,7 +6,11 @@ from django.db import connection
 from django.contrib.auth import get_user_model
 from django.http import HttpResponseServerError
 from django.conf import settings
-from .logging_config import get_logger
+
+# Criar um logger padrão para evitar problemas de importação
+def get_logger(name):
+    logger = logging.getLogger(name)
+    return logger
 
 
 class ResourceMonitorMiddleware(MiddlewareMixin):
