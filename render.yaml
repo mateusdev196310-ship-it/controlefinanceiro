@@ -3,7 +3,7 @@ services:
     name: financeiro-app
     env: python
     buildCommand: "./build.sh"
-    startCommand: "gunicorn financeiro.wsgi:application --bind 0.0.0.0:$PORT"
+    startCommand: "gunicorn financeiro.wsgi:application --bind 0.0.0.0:$PORT --config gunicorn.conf.py"
     plan: free
     envVars:
       - key: PYTHON_VERSION

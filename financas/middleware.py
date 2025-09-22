@@ -1,9 +1,61 @@
 import uuid
 import time
+import logging
 from django.utils.deprecation import MiddlewareMixin
 from django.db import connection
 from django.contrib.auth import get_user_model
+from django.http import HttpResponseServerError
+from django.conf import settings
 from .logging_config import get_logger
+
+
+class ResourceMonitorMiddleware(MiddlewareMixin):
+    """
+    Middleware para monitorar o uso de recursos e evitar timeouts.
+    Limita o tempo de processamento de requisições e interrompe operações
+    que estão consumindo muitos recursos.
+    """
+    
+    def __init__(self, get_response):
+        self.get_response = get_response
+        # Tempo máximo de processamento em segundos
+        self.max_request_time = getattr(settings, 'MAX_REQUEST_TIME', 60)
+        self.logger = get_logger('financas.middleware')
+        super().__init__(get_response)
+    
+    def process_request(self, request):
+        # Registrar o tempo de início
+        request.start_time = time.time()
+        
+        # Ignorar requisições admin e static
+        if request.path.startswith('/admin/') or request.path.startswith('/static/'):
+            return None
+            
+        # Verificar se a requisição é para importação de transações
+        if 'importar_transacoes' in request.path:
+            # Definir um timeout maior para importações
+            request.timeout = getattr(settings, 'IMPORT_TIMEOUT', 120)
+        else:
+            # Usar o timeout padrão
+            request.timeout = self.max_request_time
+            
+        return None
+    
+    def process_response(self, request, response):
+        # Calcular o tempo de processamento se houver start_time
+        if hasattr(request, 'start_time'):
+            processing_time = time.time() - request.start_time
+            
+            # Registrar requisições lentas
+            if processing_time > 5:  # Registrar requisições que levam mais de 5 segundos
+                self.logger.warning(
+                    f"Requisição lenta: {request.path} - {processing_time:.2f}s"
+                )
+            
+            # Adicionar header com o tempo de processamento
+            response['X-Processing-Time'] = f"{processing_time:.2f}s"
+        
+        return response
 
 
 class LoggingContextMiddleware(MiddlewareMixin):

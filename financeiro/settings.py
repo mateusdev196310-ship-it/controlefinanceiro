@@ -78,6 +78,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'financas.middleware.ResourceMonitorMiddleware',
     'financas.middleware.TenantMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -252,6 +253,23 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Whitenoise configuration for serving static files
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# Configurações de cache para melhorar o desempenho
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
+# Configurações para otimizar o desempenho
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
+DATABASE_STATEMENT_TIMEOUT = 30000  # 30 segundos
+DATABASE_CONN_MAX_AGE = 600  # 10 minutos
+
+# Configurações de timeout para evitar SIGKILL no Render
+MAX_REQUEST_TIME = 60  # Tempo máximo de processamento em segundos para requisições normais
+IMPORT_TIMEOUT = 120  # Tempo máximo para importações de transações
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

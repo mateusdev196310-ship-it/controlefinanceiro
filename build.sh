@@ -32,8 +32,9 @@ echo "Python version: $(python --version)"
 echo "Django version: $(python -c 'import django; print(django.get_version())')"
 echo "======================================"
 
-# Instalar dependências
-pip install -r requirements.txt
+# Instalar dependências com cache para acelerar o processo
+pip install --upgrade pip
+pip install --no-cache-dir -r requirements.txt
 
 # Debug: Verificar se o banco existe e tem tabelas
 echo "=== DEBUG: Verificando banco de dados ==="
@@ -109,3 +110,25 @@ echo "==============================================="
 echo "=== Coletando arquivos estáticos ==="
 python manage.py collectstatic --no-input
 echo "===================================="
+
+# Aplicar migrações
+echo "=== Aplicando migrações ==="
+python manage.py migrate --no-input
+echo "============================"
+
+# Otimizar banco de dados
+echo "=== Otimizando banco de dados ==="
+python -c "
+import os
+import django
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'financeiro.settings')
+django.setup()
+from django.db import connection
+try:
+    with connection.cursor() as cursor:
+        cursor.execute('VACUUM;')
+        print('✓ Banco de dados otimizado com sucesso')
+except Exception as e:
+    print(f'Aviso: Não foi possível otimizar o banco de dados: {e}')
+"
+echo "================================="

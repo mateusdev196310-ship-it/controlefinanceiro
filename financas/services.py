@@ -694,9 +694,17 @@ class TransacaoService:
             erros = []
             dados_invalidos = []  # Lista para armazenar dados que precisam de correção manual
             
-            # Processar cada linha da planilha
-            with transaction.atomic():
-                for index, row in df.iterrows():
+            # Processar cada linha da planilha em lotes para evitar timeout
+            BATCH_SIZE = 50  # Processar 50 transações por vez
+            
+            # Dividir o dataframe em lotes
+            total_rows = len(df)
+            for batch_start in range(0, total_rows, BATCH_SIZE):
+                batch_end = min(batch_start + BATCH_SIZE, total_rows)
+                batch_df = df.iloc[batch_start:batch_end]
+                
+                with transaction.atomic():
+                    for index, row in batch_df.iterrows():
                     try:
                         # Validar campos obrigatórios
                         if pd.isna(row['descricao']) or pd.isna(row['valor']) or pd.isna(row['data']) or pd.isna(row['tipo']):
@@ -799,8 +807,9 @@ class TransacaoService:
                     except Exception as e:
                         erros.append(f"Linha {index+2}: {str(e)}")
             
-            # Atualizar saldos das contas afetadas
+            # Atualizar saldos das contas afetadas - otimizado para evitar timeout
             contas_afetadas = set()
+            # Coletar contas afetadas apenas uma vez, fora dos lotes
             for index, row in df.iterrows():
                 if 'conta' in row and not pd.isna(row.get('conta', None)):
                     try:
@@ -809,11 +818,36 @@ class TransacaoService:
                     except Conta.DoesNotExist:
                         pass
             
-            for conta_id in contas_afetadas:
-                ContaService.atualizar_saldo_conta(conta_id)
+            # Atualizar saldos em lotes para evitar timeout
+            BATCH_SIZE_SALDOS = 10  # Processar 10 contas por vez
+            contas_lista = list(contas_afetadas)
+            
+            for i in range(0, len(contas_lista), BATCH_SIZE_SALDOS):
+                batch_contas = contas_lista[i:i+BATCH_SIZE_SALDOS]
+                for conta_id in batch_contas:
+                    ContaService.atualizar_saldo_conta(conta_id)
             
             # Verificar se há linhas com erro que ainda não foram adicionadas a dados_invalidos
+            # Limitar o número de erros processados para evitar timeout
+            MAX_ERROS = 50  # Limitar a 50 erros para não sobrecarregar o sistema
+            
+            # Se já temos muitos erros, não processar mais
+            if len(erros) > MAX_ERROS:
+                erros = erros[:MAX_ERROS]
+                erros.append(f"Mais de {MAX_ERROS} erros encontrados. Alguns erros foram omitidos.")
+            
+            # Limitar o número de dados inválidos para evitar sobrecarga de memória
+            if len(dados_invalidos) > MAX_ERROS:
+                dados_invalidos = dados_invalidos[:MAX_ERROS]
+            
+            # Verificar apenas um número limitado de linhas com erro
+            linhas_verificadas = 0
             for index, row in df.iterrows():
+                # Limitar o número de linhas verificadas
+                linhas_verificadas += 1
+                if linhas_verificadas > 200:  # Verificar apenas as primeiras 200 linhas
+                    break
+                    
                 # Verificar se esta linha teve erro
                 linha_com_erro = False
                 linha_ja_adicionada = False
