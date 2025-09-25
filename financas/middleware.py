@@ -6,11 +6,7 @@ from django.db import connection
 from django.contrib.auth import get_user_model
 from django.http import HttpResponseServerError
 from django.conf import settings
-
-# Criar um logger padrão para evitar problemas de importação
-def get_logger(name):
-    logger = logging.getLogger(name)
-    return logger
+from .logging_config import get_logger
 
 
 class ResourceMonitorMiddleware(MiddlewareMixin):
@@ -234,10 +230,12 @@ class TenantMiddleware(MiddlewareMixin):
                 if not schema_name:
                     # Fallback para user_id se não tiver CPF/CNPJ
                     schema_name = f"user_{user.id}"
-                    self.logger.warning(
-                        f"[SCHEMA_FALLBACK] Usuário {user.username} "
-                        f"não tem CPF/CNPJ válido, usando fallback: {schema_name} "
-                        f"(user_id={user.id}, schema={schema_name})"
+                    self.logger.log_operation(
+                        level=30,  # WARNING
+                        operation='SCHEMA_FALLBACK',
+                        message=f"Usuário {user.username} não tem CPF/CNPJ válido, usando fallback: {schema_name}",
+                        user_id=user.id,
+                        schema_name=schema_name
                     )
                 
                 # Definir tenant_id e schema_name
@@ -245,23 +243,28 @@ class TenantMiddleware(MiddlewareMixin):
                 connection.schema_name = schema_name
                 
                 # Log da definição do tenant
-                self.logger.info(
-                    f"[TENANT_SET] Schema definido: {schema_name} "
-                    f"para usuário {user.username} (CPF/CNPJ: {identifier}), "
-                    f"user_id={user.id}, schema={schema_name}"
+                self.logger.log_operation(
+                    level=20,  # INFO
+                    operation='TENANT_SET',
+                    message=f"Schema definido: {schema_name} para usuário {user.username} (CPF/CNPJ: {identifier})",
+                    user_id=user.id,
+                    schema_name=schema_name
                 )
                     
             except User.DoesNotExist:
-                self.logger.error(
-                    f"[USER_NOT_FOUND] Usuário autenticado não encontrado: "
-                    f"{getattr(request.user, 'id', None)}"
+                self.logger.log_operation(
+                    level=40,  # ERROR
+                    operation='USER_NOT_FOUND',
+                    message=f"Usuário autenticado não encontrado: {request.user.id}",
+                    user_id=request.user.id if hasattr(request.user, 'id') else None
                 )
             except Exception as e:
-                  self.logger.exception(
-                    f"[TENANT_ERROR] Erro ao definir schema "
-                    f"(user_id={getattr(request.user, 'id', None)}, "
-                    f"error_code=TENANT_SETUP_ERROR, error={e})"
-            )
+                self.logger.log_error(
+                    operation='TENANT_ERROR',
+                    error=e,
+                    user_id=request.user.id if hasattr(request.user, 'id') else None,
+                    error_code='TENANT_SETUP_ERROR'
+                )
     
     def process_response(self, request, response):
         # Limpar tenant da conexão após a requisição
