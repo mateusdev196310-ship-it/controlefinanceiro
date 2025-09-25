@@ -6,7 +6,42 @@ from django.db import connection
 from django.contrib.auth import get_user_model
 from django.http import HttpResponseServerError
 from django.conf import settings
-from .logging_config import get_logger
+
+# Função local para criar logger
+def get_logger(name):
+    logger = logging.getLogger(name)
+    return Logger(logger)
+
+# Classe Logger para substituir o FinancasLoggerAdapter
+class Logger:
+    def __init__(self, logger):
+        self.logger = logger
+        self.extra = {}
+    
+    def log_operation(self, level, operation, entity_type=None, entity_id=None, 
+                     message=None, duration_ms=None, **kwargs):
+        """Log estruturado para operações do sistema."""
+        if message:
+            self.logger.log(level, message)
+        else:
+            self.logger.log(level, f"Operação {operation} executada")
+    
+    def log_error(self, operation, error, entity_type=None, entity_id=None, 
+                  error_code=None, **kwargs):
+        """Log estruturado para erros."""
+        self.logger.error(f"Erro na operação {operation}: {str(error)}")
+    
+    def info(self, msg, *args, **kwargs):
+        self.logger.info(msg, *args, **kwargs)
+    
+    def warning(self, msg, *args, **kwargs):
+        self.logger.warning(msg, *args, **kwargs)
+    
+    def error(self, msg, *args, **kwargs):
+        self.logger.error(msg, *args, **kwargs)
+    
+    def debug(self, msg, *args, **kwargs):
+        self.logger.debug(msg, *args, **kwargs)
 
 
 class ResourceMonitorMiddleware(MiddlewareMixin):
